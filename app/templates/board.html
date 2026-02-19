@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{{ board.name }}{% endblock %}
+
+{% block content %}
+<div class="board-header">
+    <h2>{{ board.name }}</h2>
+    <button onclick="openAddTaskModal()">+ Добавить задачу</button>
+</div>
+
+<div class="kanban-board">
+    <!-- Колонка задач -->
+    <div class="column" data-status="todo">
+        <h3>Нужно сделать</h3>
+        <div class="tasks" id="todo-tasks">
+            {% for task in columns.todo %}
+                {% include "partials/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Колонка в прогрессе -->
+    <div class="column" data-status="in_progress">
+        <h3>В процессе</h3>
+        <div class="tasks" id="in-progress-tasks">
+            {% for task in columns.in_progress %}
+                {% include "partials/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Колонка готово -->
+    <div class="column" data-status="done">
+        <h3>Готово</h3>
+        <div class="tasks" id="done-tasks">
+            {% for task in columns.done %}
+                {% include "partials/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно добавления задачи -->
+<div id="taskModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Новая задача</h3>
+        <form action="/board/{{ board.id }}/task" method="post">
+            <input type="text" name="title" placeholder="Название задачи" required>
+            <textarea name="description" placeholder="Описание"></textarea>
+            <button type="submit">Создать</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
