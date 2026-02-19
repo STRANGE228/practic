@@ -10,7 +10,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     description = Column(String, default="")
-    status = Column(String, default="todo")  # todo, in_progress, done
+    status = Column(String, default="todo")
     board_id = Column(Integer, ForeignKey("boards.id", ondelete="CASCADE"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

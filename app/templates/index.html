@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - {{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Мои доски</h1>
+    <a href="/boards/new" class="btn btn-primary">+ Создать новую доску</a>
+</div>
+
+<div class="boards-grid">
+    {% if boards %}
+        {% for board in boards %}
+            <div class="board-card">
+                <h3>{{ board.name }}</h3>
+                <p class="board-description">{{ board.description or "Нет описания" }}</p>
+                <div class="board-stats">
+                    <span>Задач: {{ board.tasks|length }}</span>
+                </div>
+                <div class="board-actions">
+                    <a href="/boards/{{ board.id }}" class="btn btn-view">Открыть</a>
+                    <form action="/boards/{{ board.id }}/delete" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-delete" onclick="return confirm('Удалить доску?')">🗑️</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <p>У вас пока нет досок</p>
+            <a href="/boards/new" class="btn btn-primary">Создать первую доску</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

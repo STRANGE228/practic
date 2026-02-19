@@ -1,0 +1,14 @@
+<div class="task-card" id="task-{{ task.id }}" draggable="true" data-task-id="{{ task.id }}">
+    <div class="task-card-header">
+        <h4>{{ task.title }}</h4>
+        <form action="/tasks/{{ task.id }}/delete" method="post" class="delete-task-form">
+            <button type="submit" class="btn-icon" onclick="return confirm('Удалить задачу?')" title="Удалить">🗑️</button>
+        </form>
+    </div>
+    {% if task.description %}
+        <p class="task-description">{{ task.description }}</p>
+    {% endif %}
+    <div class="task-meta">
+        <span class="task-date">{{ task.created_at.strftime('%d.%m') }}</span>
+    </div>
+</div>

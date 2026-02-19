@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ board.name }}{% endblock %}
+
+{% block content %}
+<div class="board-header">
+    <div>
+        <h1>{{ board.name }}</h1>
+        {% if board.description %}
+            <p class="board-description">{{ board.description }}</p>
+        {% endif %}
+    </div>
+    <button class="btn btn-primary" onclick="openTaskModal()">+ Добавить задачу</button>
+</div>
+
+<div class="kanban-board">
+    <!-- Колонка задачи -->
+    <div class="column" data-status="todo">
+        <div class="column-header">
+            <h2>📝 Нужно сделать</h2>
+            <span class="task-count">{{ columns.todo|length }}</span>
+        </div>
+        <div class="tasks-container" id="todo-tasks">
+            {% for task in columns.todo %}
+                {% include "partials/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Колонка в прогрессе -->
+    <div class="column" data-status="in_progress">
+        <div class="column-header">
+            <h2>⚡ В процессе</h2>
+            <span class="task-count">{{ columns.in_progress|length }}</span>
+        </div>
+        <div class="tasks-container" id="in-progress-tasks">
+            {% for task in columns.in_progress %}
+                {% include "partials/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Колонка готово -->
+    <div class="column" data-status="done">
+        <div class="column-header">
+            <h2>✅ Готово</h2>
+            <span class="task-count">{{ columns.done|length }}</span>
+        </div>
+        <div class="tasks-container" id="done-tasks">
+            {% for task in columns.done %}
+                {% include "partials/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления задачи -->
+<div id="taskModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeTaskModal()">&times;</span>
+        <h2>Новая задача</h2>
+        <form action="/tasks/" method="post">
+            <input type="hidden" name="board_id" value="{{ board.id }}">
+            
+            <div class="form-group">
+                <label for="title">Название задачи *</label>
+                <input type="text" id="title" name="title" required 
+                       placeholder="Что нужно сделать?">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Описание</label>
+                <textarea id="description" name="description" rows="3" 
+                          placeholder="Подробности задачи..."></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Создать</button>
+                <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openTaskModal() {
+        document.getElementById('taskModal').style.display = 'block';
+    }
+    
+    function closeTaskModal() {
+        document.getElementById('taskModal').style.display = 'none';
+    }
+    
+    // Закрытие модального окна при клике вне его
+    window.onclick = function(event) {
+        const modal = document.getElementById('taskModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}
