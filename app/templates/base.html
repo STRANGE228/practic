@@ -12,10 +12,24 @@
             <a href="/" class="nav-brand">Kanban Board</a>
             <div class="nav-menu">
                 <a href="/" class="nav-link">Главная</a>
-                <a href="/boards/new" class="nav-link">+ Новая доска</a>
+                {% if user %}
+                    <a href="/my-boards" class="nav-link">Мои доски</a>
+                    <a href="/boards/new" class="nav-link">+ Новая доска</a>
+                    <div class="nav-user">
+                        <span class="nav-username">{{ user.username }}</span>
+                        <a href="/auth/logout" class="nav-link">Выйти</a>
+                    </div>
+                {% else %}
+                    <a href="/auth/login" class="nav-link">Войти</a>
+                    <a href="/auth/register" class="nav-link btn-register">Регистрация</a>
+                {% endif %}
             </div>
         </div>
     </nav>
+
+
+
+
 
     <main class="container">
         {% block content %}{% endblock %}
@@ -23,5 +37,6 @@
 
     <script src="/static/js/kanban.js"></script>
     {% block scripts %}{% endblock %}
+
 </body>
 </html>

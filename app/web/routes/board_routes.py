@@ -46,7 +46,6 @@ async def create_board(
         description: str = Form(""),
         db: Session = Depends(get_db)
 ):
-    """Создать новую доску"""
     board_repo = BoardRepository(db)
     board = board_repo.create(name=name, description=description)
 
@@ -82,7 +81,6 @@ async def view_board(
 
 @router.post("/{board_id}/delete")
 async def delete_board(board_id: int, db: Session = Depends(get_db)):
-    """Удалить доску"""
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 

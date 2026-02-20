@@ -16,7 +16,6 @@ async def create_task(
         description: str = Form(""),
         db: Session = Depends(get_db)
 ):
-    """Создать новую задачу"""
     task_repo = TaskRepository(db)
     task_service = TaskService(task_repo)
 
@@ -29,7 +28,6 @@ async def create_task(
 
 @router.post("/{task_id}/move")
 async def move_task(task_id: int, request: Request, db: Session = Depends(get_db)):
-    """Переместить задачу (API для Drag & Drop)"""
     data = await request.json()
     new_status = data.get("status")
 
@@ -51,7 +49,6 @@ async def move_task(task_id: int, request: Request, db: Session = Depends(get_db
 
 @router.post("/{task_id}/delete")
 async def delete_task(task_id: int, db: Session = Depends(get_db)):
-    """Удалить задачу"""
     task_repo = TaskRepository(db)
     task = task_repo.get(task_id)
 

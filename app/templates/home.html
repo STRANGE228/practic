@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1>Kanban Board</h1>
+        <p class="hero-subtitle">Управляй своими задачами</p>
+        
+        {% if not user %}
+        <div class="hero-buttons">
+            <a href="/auth/register" class="btn btn-primary btn-large">Зарегистрироваться</a>
+            <a href="/auth/login" class="btn btn-secondary btn-large">Войти</a>
+        </div>
+        {% else %}
+        <div class="hero-buttons">
+            <a href="/my-boards" class="btn btn-primary btn-large">Перейти к доскам</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="features-section">
+    
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon"></div>
+            <h3>Простота использования</h3>
+            <p>Просто и удобно</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"></div>
+            <h3>Вообще класс</h3>
+            <p>Я балдею</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon"></div>
+            <h3>Бесплатно</h3>
+            <p>Реально, 0 рублей в месяц(и даже в год)</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

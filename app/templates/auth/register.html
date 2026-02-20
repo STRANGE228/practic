@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1>Регистрация</h1>
+        
+        {% if error %}
+        <div class="alert alert-error">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <form action="/auth/register" method="post" class="auth-form" id="registerForm">
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    value="{{ email if email else '' }}"
+                    autocomplete="email"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="username">Имя *</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    required
+                    minlength="2"
+                    maxlength="50"
+                    value="{{ username if username else '' }}"
+                    autocomplete="name"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Пароль *</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                    minlength="6"
+                    maxlength="72"
+                    autocomplete="new-password"
+                >
+                <small class="form-text">Минимум 6 символов</small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Подтвердите пароль *</label>
+                <input
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    required
+                    autocomplete="new-password"
+                >
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Зарегистрироваться</button>
+        </form>
+
+        <div class="auth-links">
+            <p>Уже есть аккаунт? <a href="/auth/login">Войти</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm_password').value;
+
+    if (password.length < 6) {
+        e.preventDefault();
+        alert('Пароль должен быть минимум 6 символов');
+        return;
+    }
+
+    if (password.length > 72) {
+        e.preventDefault();
+        alert('Пароль не может быть длиннее 72 символов');
+        return;
+    }
+
+    if (password !== confirm) {
+        e.preventDefault();
+        alert('Пароли не совпадают');
+        return;
+    }
+});
+</script>
+{% endblock %}

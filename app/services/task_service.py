@@ -6,7 +6,7 @@ class TaskService:
     def __init__(self, task_repo: TaskRepository):
         self.task_repo = task_repo
 
-    def create_task(self, board_id: int, title: str, description: str = "") -> Optional[dict]:
+    def create_task(self, board_id: int, title: str, description: str = ""):
         if not title:
             raise ValueError("Title is required")
 
@@ -18,7 +18,7 @@ class TaskService:
         )
         return task
 
-    def move_task(self, task_id: int, new_status: str) -> Optional[dict]:
+    def move_task(self, task_id: int, new_status: str):
         valid_statuses = ["todo", "in_progress", "done"]
         if new_status not in valid_statuses:
             raise ValueError(f"Invalid status. Must be one of: {valid_statuses}")

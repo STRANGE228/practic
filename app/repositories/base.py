@@ -13,7 +13,7 @@ class BaseRepository(Generic[ModelType]):
     def get(self, id: int) -> Optional[ModelType]:
         return self.db.query(self.model).filter(self.model.id == id).first()
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
+    def get_all(self, skip: int = 0, limit: int = 100):
         return self.db.query(self.model).offset(skip).limit(limit).all()
 
     def create(self, **kwargs) -> ModelType:
@@ -23,13 +23,13 @@ class BaseRepository(Generic[ModelType]):
         self.db.refresh(obj)
         return obj
 
-    def update(self, obj: ModelType, **kwargs) -> ModelType:
+    def update(self, obj: ModelType, **kwargs):
         for key, value in kwargs.items():
             setattr(obj, key, value)
         self.db.commit()
         self.db.refresh(obj)
         return obj
 
-    def delete(self, obj: ModelType) -> None:
+    def delete(self, obj: ModelType):
         self.db.delete(obj)
         self.db.commit()

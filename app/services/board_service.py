@@ -8,7 +8,7 @@ class BoardService:
         self.board_repo = board_repo
         self.task_repo = task_repo
 
-    def get_board_with_grouped_tasks(self, board_id: int) -> Dict:
+    def get_board_with_grouped_tasks(self, board_id: int):
         board = self.board_repo.get(board_id)
         if not board:
             return None
