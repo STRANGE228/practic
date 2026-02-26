@@ -1,0 +1,15 @@
+<div class="task-card" id="task-{{ task.id }}" draggable="true" data-task-id="{{ task.id }}">
+    <div class="task-card-header">
+        <h4>{{ task.title }}</h4>
+        <button class="btn-icon" onclick="openEditTaskModal('{{ task.id }}', '{{ task.title }}', '{{ task.description }}', '{{ task.status }}')" title="Редактировать">✏️</button>
+    </div>
+    {% if task.description %}
+        <p class="task-description">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</p>
+    {% endif %}
+    <div class="task-meta">
+        <span class="task-date">{{ task.created_at.strftime('%d.%m') }}</span>
+        <form action="/tasks/{{ task.id }}/delete" method="post" style="display: inline;" onsubmit="return confirm('Удалить задачу?')">
+            <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+        </form>
+    </div>
+</div>

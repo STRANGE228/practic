@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -9,13 +9,14 @@ class Task(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
-    description = Column(String, default="")
+    description = Column(Text, default="")
     status = Column(String, default="todo")
-    board_id = Column(Integer, ForeignKey("boards.id", ondelete="CASCADE"))
+    order = Column(Integer, default=0)
+    board_id = Column(Integer, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Связь с доской
+    # Связи
     board = relationship("Board", back_populates="tasks")
 
     def __repr__(self):

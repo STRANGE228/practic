@@ -1,14 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}Мои доски{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <div>
-        <h1>Мои доски</h1>
-        <p class="welcome-message">Добро пожаловать, {{ user.username }}!</p>
-    </div>
-    <a href="/boards/new" class="btn btn-primary">➕ Создать новую доску</a>
+    <h1>Мои доски</h1>
+    <a href="/boards/new" class="btn btn-primary">➕ Создать доску</a>
 </div>
 
 <div class="boards-grid">
@@ -16,12 +13,16 @@
         {% for board in boards %}
             <div class="board-card">
                 <h3>{{ board.name }}</h3>
-                <p class="board-description">{{ board.description or "Нет описания" }}</p>
+                {% if board.description %}
+                    <p class="board-description">{{ board.description }}</p>
+                {% endif %}
                 <div class="board-stats">
-                    <span>📊 Задач: {{ board.tasks|length }}</span>
+                    <span>Задач: {{ board.tasks|length }}</span>
+                    <span>{{ board.created_at.strftime('%d.%m.%Y') }}</span>
                 </div>
                 <div class="board-actions">
                     <a href="/boards/{{ board.id }}" class="btn btn-view">Открыть</a>
+                    <a href="/boards/{{ board.id }}/edit" class="btn btn-secondary">✏️</a>
                     <form action="/boards/{{ board.id }}/delete" method="post" style="display: inline;">
                         <button type="submit" class="btn btn-delete" onclick="return confirm('Удалить доску?')">🗑️</button>
                     </form>

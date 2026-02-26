@@ -9,13 +9,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def get_token_from_cookie(request: Request) -> str | None:
+async def get_token_from_cookie(request):
     """Получение токена из cookie"""
     token = request.cookies.get("access_token")
     if token:
         logger.debug(f"Found token in cookie: {token[:20]}...")
         if token.startswith("Bearer "):
-            return token[7:]  # Убираем "Bearer "
+            return token[7:]
         return token
     logger.debug("No token in cookie")
     return None

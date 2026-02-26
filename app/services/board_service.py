@@ -4,11 +4,11 @@ from typing import Dict, List
 
 
 class BoardService:
-    def __init__(self, board_repo: BoardRepository, task_repo: TaskRepository):
+    def __init__(self, board_repo, task_repo):
         self.board_repo = board_repo
         self.task_repo = task_repo
 
-    def get_board_with_grouped_tasks(self, board_id: int):
+    def get_board_with_tasks(self, board_id):
         board = self.board_repo.get(board_id)
         if not board:
             return None
@@ -26,3 +26,10 @@ class BoardService:
             "board": board,
             "columns": columns
         }
+
+    def create_board(self, name, description, owner_id):
+        return self.board_repo.create_board(
+            name=name,
+            description=description,
+            owner_id=owner_id
+        )

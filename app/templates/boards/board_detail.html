@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}{{ board.name }}{% endblock %}
+
+{% block content %}
+<div class="board-header">
+    <div>
+        <h1>{{ board.name }}</h1>
+        {% if board.description %}
+            <p class="board-description">{{ board.description }}</p>
+        {% endif %}
+    </div>
+    <div class="board-header-actions">
+        <a href="/boards/{{ board.id }}/edit" class="btn btn-secondary">✏️ Редактировать</a>
+        <button class="btn btn-primary" onclick="openTaskModal()">➕ Добавить задачу</button>
+    </div>
+</div>
+
+<div class="kanban-board" data-board-id="{{ board.id }}">
+    <div class="column" data-status="todo">
+        <div class="column-header">
+            <h2>📝 Нужно сделать</h2>
+            <span class="task-count">{{ columns.todo|length }}</span>
+        </div>
+        <div class="tasks-container" id="todo-tasks" data-status="todo">
+            {% for task in columns.todo|sort(attribute='order') %}
+                {% include "boards/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="column" data-status="in_progress">
+        <div class="column-header">
+            <h2>⚡ В процессе</h2>
+            <span class="task-count">{{ columns.in_progress|length }}</span>
+        </div>
+        <div class="tasks-container" id="in-progress-tasks" data-status="in_progress">
+            {% for task in columns.in_progress|sort(attribute='order') %}
+                {% include "boards/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="column" data-status="done">
+        <div class="column-header">
+            <h2>✅ Готово</h2>
+            <span class="task-count">{{ columns.done|length }}</span>
+        </div>
+        <div class="tasks-container" id="done-tasks" data-status="done">
+            {% for task in columns.done|sort(attribute='order') %}
+                {% include "boards/task_card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления задачи -->
+<div id="taskModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeTaskModal()">&times;</span>
+        <h2>Новая задача</h2>
+        <form action="/tasks/create" method="post">
+            <input type="hidden" name="board_id" value="{{ board.id }}">
+            
+            <div class="form-group">
+                <label for="title">Название задачи</label>
+                <input type="text" id="title" name="title" required placeholder="Что нужно сделать?">
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Описание (необязательно)</label>
+                <textarea id="description" name="description" rows="3" placeholder="Подробности задачи..."></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Создать</button>
+                <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования задачи -->
+<div id="editTaskModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditTaskModal()">&times;</span>
+        <h2>Редактировать задачу</h2>
+        <form id="editTaskForm" method="post">
+            <input type="hidden" id="edit_task_id" name="task_id">
+            
+            <div class="form-group">
+                <label for="edit_title">Название задачи</label>
+                <input type="text" id="edit_title" name="title" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit_description">Описание</label>
+                <textarea id="edit_description" name="description" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit_status">Статус</label>
+                <select id="edit_status" name="status">
+                    <option value="todo">Нужно сделать</option>
+                    <option value="in_progress">В процессе</option>
+                    <option value="done">Готово</option>
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEditTaskModal()">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openTaskModal() {
+        document.getElementById('taskModal').style.display = 'block';
+    }
+    
+    function closeTaskModal() {
+        document.getElementById('taskModal').style.display = 'none';
+    }
+    
+    function openEditTaskModal(taskId, title, description, status) {
+        document.getElementById('edit_task_id').value = taskId;
+        document.getElementById('edit_title').value = title;
+        document.getElementById('edit_description').value = description;
+        document.getElementById('edit_status').value = status;
+        document.getElementById('editTaskForm').action = `/tasks/${taskId}/update`;
+        document.getElementById('editTaskModal').style.display = 'block';
+    }
+    
+    function closeEditTaskModal() {
+        document.getElementById('editTaskModal').style.display = 'none';
+    }
+    
+    window.onclick = function(event) {
+        const taskModal = document.getElementById('taskModal');
+        const editModal = document.getElementById('editTaskModal');
+        
+        if (event.target == taskModal) {
+            taskModal.style.display = 'none';
+        }
+        if (event.target == editModal) {
+            editModal.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

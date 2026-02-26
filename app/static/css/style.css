@@ -1,4 +1,3 @@
-/* Основные стили */
 * {
     margin: 0;
     padding: 0;
@@ -39,6 +38,7 @@ body {
 .nav-menu {
     display: flex;
     gap: 20px;
+    align-items: center;
 }
 
 .nav-link {
@@ -53,11 +53,214 @@ body {
     background: #34495e;
 }
 
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: 20px;
+    padding-left: 20px;
+    border-left: 1px solid #34495e;
+}
+
+.nav-username {
+    color: white;
+    font-weight: 500;
+}
+
+.btn-register {
+    background: #3498db;
+    padding: 8px 16px !important;
+    border-radius: 4px;
+}
+
+.btn-register:hover {
+    background: #2980b9;
+}
+
 /* Контейнер */
 .container {
     max-width: 1200px;
     margin: 30px auto;
     padding: 0 20px;
+}
+
+/* Кнопки */
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #7f8c8d;
+}
+
+.btn-view {
+    background: #2ecc71;
+    color: white;
+}
+
+.btn-view:hover {
+    background: #27ae60;
+}
+
+.btn-delete {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn-delete:hover {
+    background: #c0392b;
+}
+
+.btn-block {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+}
+
+.btn-large {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+}
+
+.btn-icon:hover {
+    opacity: 1;
+}
+
+/* Hero секция */
+.hero-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 80px 0;
+    text-align: center;
+    border-radius: 8px;
+    margin-bottom: 60px;
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero-content h1 {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+/* Features секция */
+.features-section {
+    padding: 60px 0;
+    text-align: center;
+}
+
+.features-section h2 {
+    font-size: 2.5rem;
+    color: #2c3e50;
+    margin-bottom: 50px;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    margin-top: 40px;
+}
+
+.feature-card {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+}
+
+.feature-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+/* Страницы аутентификации */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 200px);
+    padding: 40px 20px;
+}
+
+.auth-card {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.auth-card h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 30px;
+}
+
+.auth-form .form-group {
+    margin-bottom: 20px;
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.auth-links a {
+    color: #667eea;
+    text-decoration: none;
 }
 
 /* Заголовки страниц */
@@ -98,11 +301,6 @@ body {
     color: #2c3e50;
 }
 
-.board-card h3 a {
-    color: #2c3e50;
-    text-decoration: none;
-}
-
 .board-description {
     color: #666;
     margin-bottom: 15px;
@@ -122,124 +320,21 @@ body {
     gap: 10px;
 }
 
-/* Кнопки */
-.btn {
-    display: inline-block;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: background 0.3s;
+/* Канбан доска */
+.board-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
 }
 
-.btn-primary {
-    background: #3498db;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #2980b9;
-}
-
-.btn-secondary {
-    background: #95a5a6;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background: #7f8c8d;
-}
-
-.btn-view {
-    background: #2ecc71;
-    color: white;
-}
-
-.btn-view:hover {
-    background: #27ae60;
-}
-
-.btn-delete {
-    background: #e74c3c;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-}
-
-.btn-delete:hover {
-    background: #c0392b;
-}
-
-.btn-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 5px;
-}
-
-/* Пустое состояние */
-.empty-state {
-    text-align: center;
-    padding: 50px;
-    background: white;
-    border-radius: 8px;
-    grid-column: 1 / -1;
-}
-
-.empty-state p {
-    color: #999;
-    margin-bottom: 20px;
-    font-size: 1.2rem;
-}
-
-/* Формы */
-.form-container {
-    max-width: 500px;
-    margin: 0 auto;
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: #2c3e50;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    font-family: inherit;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: #3498db;
-}
-
-.form-actions {
+.board-header-actions {
     display: flex;
     gap: 10px;
-    justify-content: flex-end;
-    margin-top: 30px;
 }
 
-/* Канбан доска */
 .kanban-board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -309,23 +404,78 @@ body {
 .task-card-header h4 {
     font-size: 1rem;
     color: #2c3e50;
-    margin-right: 10px;
+    word-break: break-word;
 }
 
 .task-description {
     font-size: 0.9rem;
     color: #666;
     margin-bottom: 8px;
+    word-break: break-word;
 }
 
 .task-meta {
     font-size: 0.8rem;
     color: #999;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* Модальное окно */
+/* Формы */
+.form-container {
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.form-text {
+    font-size: 0.85rem;
+    color: #999;
+    margin-top: 5px;
+    display: block;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+/* Модальные окна */
 .modal {
     display: none;
     position: fixed;
@@ -339,7 +489,7 @@ body {
 
 .modal-content {
     background: white;
-    margin: 15% auto;
+    margin: 10% auto;
     padding: 30px;
     border-radius: 8px;
     max-width: 500px;
@@ -371,6 +521,34 @@ body {
     color: #333;
 }
 
+/* Пустое состояние */
+.empty-state {
+    text-align: center;
+    padding: 50px;
+    background: white;
+    border-radius: 8px;
+    grid-column: 1 / -1;
+}
+
+.empty-state p {
+    color: #999;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+}
+
+/* Уведомления */
+.alert {
+    padding: 12px 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.alert-error {
+    background: #fee;
+    color: #c33;
+    border: 1px solid #fcc;
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
     .kanban-board {
@@ -386,247 +564,15 @@ body {
         gap: 15px;
         text-align: center;
     }
-}
 
-/* Hero секция */
-.hero-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 80px 0;
-    text-align: center;
-    border-radius: 8px;
-    margin-bottom: 60px;
-}
+    .board-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
 
-.hero-content {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.hero-content h1 {
-    font-size: 3rem;
-    margin-bottom: 20px;
-}
-
-.hero-subtitle {
-    font-size: 1.5rem;
-    margin-bottom: 40px;
-    opacity: 0.9;
-}
-
-.hero-buttons {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-}
-
-.btn-large {
-    padding: 15px 40px;
-    font-size: 1.2rem;
-}
-
-/* Секция с особенностями */
-.features-section {
-    padding: 60px 0;
-    text-align: center;
-}
-
-.features-section h2 {
-    font-size: 2.5rem;
-    color: #2c3e50;
-    margin-bottom: 50px;
-}
-
-.features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 30px;
-    margin-top: 40px;
-}
-
-.feature-card {
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    transition: transform 0.3s;
-}
-
-.feature-card:hover {
-    transform: translateY(-5px);
-}
-
-.feature-icon {
-    font-size: 3rem;
-    margin-bottom: 20px;
-}
-
-.feature-card h3 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-}
-
-.feature-card p {
-    color: #666;
-    line-height: 1.6;
-}
-
-/* CTA секция */
-.cta-section {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 80px 0;
-    text-align: center;
-    border-radius: 8px;
-    margin-top: 60px;
-}
-
-.cta-content {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.cta-content h2 {
-    font-size: 2.5rem;
-    color: #2c3e50;
-    margin-bottom: 20px;
-}
-
-.cta-content p {
-    font-size: 1.2rem;
-    color: #666;
-    margin-bottom: 30px;
-}
-
-/* Стили для аутентификации */
-.auth-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: calc(100vh - 200px);
-    padding: 40px 20px;
-}
-
-.auth-card {
-    background: white;
-    padding: 40px;
-    border-radius: 8px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-    width: 100%;
-    max-width: 400px;
-}
-
-.auth-card h1 {
-    text-align: center;
-    color: #2c3e50;
-    margin-bottom: 30px;
-}
-
-.auth-form {
-    margin-bottom: 20px;
-}
-
-.auth-form .form-group {
-    margin-bottom: 20px;
-}
-
-.auth-form label {
-    display: block;
-    margin-bottom: 5px;
-    color: #2c3e50;
-    font-weight: 500;
-}
-
-.auth-form input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-    transition: border-color 0.3s;
-}
-
-.auth-form input:focus {
-    outline: none;
-    border-color: #667eea;
-}
-
-.btn-block {
-    width: 100%;
-    padding: 12px;
-    font-size: 1rem;
-}
-
-.auth-links {
-    text-align: center;
-    margin-top: 20px;
-}
-
-.auth-links p {
-    margin: 10px 0;
-    color: #666;
-}
-
-.auth-links a {
-    color: #667eea;
-    text-decoration: none;
-}
-
-.auth-links a:hover {
-    text-decoration: underline;
-}
-
-.alert {
-    padding: 12px 20px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-}
-
-.alert-error {
-    background: #fee;
-    color: #c33;
-    border: 1px solid #fcc;
-}
-
-.alert-success {
-    background: #efe;
-    color: #3c3;
-    border: 1px solid #cfc;
-}
-
-.form-text {
-    font-size: 0.85rem;
-    color: #999;
-    margin-top: 5px;
-    display: block;
-}
-
-/* Навигация для пользователя */
-.nav-user {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-left: 20px;
-    padding-left: 20px;
-    border-left: 1px solid #34495e;
-}
-
-.nav-username {
-    color: white;
-    font-weight: 500;
-}
-
-.btn-register {
-    background: #3498db;
-    padding: 8px 16px !important;
-    border-radius: 4px;
-}
-
-.btn-register:hover {
-    background: #2980b9;
-}
-
-.welcome-message {
-    color: #666;
-    font-size: 1.1rem;
-    margin-top: 5px;
+    .nav-menu {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
 }

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -10,15 +10,13 @@ class Board(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, default="")
-    user_id = Column(Integer, ForeignKey("users.id"))
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Связь с пользователем
+    # Связи
     owner = relationship("User", backref="boards")
-
-    # Связь с задачами
-    tasks = relationship("Task", back_populates="board", cascade="all, delete-orphan")
+    tasks = relationship("Task", back_populates="board", cascade="all, delete-orphan", order_by="Task.order")
 
     def __repr__(self):
         return f"<Board(id={self.id}, name={self.name})>"

@@ -15,10 +15,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/login")
-async def login_page(
-        request: Request,
-        current_user=Depends(get_current_user)
-):
+async def login_page(request, current_user = Depends(get_current_user)):
     # Если пользователь уже авторизован, отправляем на доски
     if current_user:
         return RedirectResponse(url="/my-boards", status_code=303)
@@ -30,13 +27,7 @@ async def login_page(
 
 
 @router.post("/login")
-async def login(
-        request: Request,
-        email: str = Form(...),
-        password: str = Form(...),
-        db: Session = Depends(get_db)
-):
-    """Обработка входа"""
+async def login(request, email = Form(...), password = Form(...), db = Depends(get_db)):
     logger.info(f"Login attempt for email: {email}")
 
     user_repo = UserRepository(db)
@@ -81,7 +72,6 @@ async def register_page(
         request: Request,
         current_user=Depends(get_current_user)
 ):
-    """Страница регистрации"""
     if current_user:
         return RedirectResponse(url="/my-boards", status_code=303)
 
@@ -92,17 +82,9 @@ async def register_page(
 
 
 @router.post("/register")
-async def register(
-        request: Request,
-        email: str = Form(...),
-        username: str = Form(...),
-        password: str = Form(...),
-        confirm_password: str = Form(...),
-        db: Session = Depends(get_db)
-):
+async def register(request, email = Form(...), username = Form(...), password = Form(...), confirm_password = Form(...), db = Depends(get_db)):
     logger.info(f"Registration attempt for email: {email}")
 
-    # Проверяем совпадение паролей
     if password != confirm_password:
         return templates.TemplateResponse(
             "auth/register.html",

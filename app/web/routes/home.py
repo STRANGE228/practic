@@ -12,10 +12,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/")
-async def home_page(
-        request: Request,
-        current_user: User = Depends(get_current_user)
-):
+async def home_page(request, current_user = Depends(get_current_user)):
     return templates.TemplateResponse(
         "home.html",
         {
@@ -27,11 +24,7 @@ async def home_page(
 
 
 @router.get("/my-boards")
-async def my_boards(
-        request: Request,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user)
-):
+async def my_boards(request, db = Depends(get_db), current_user = Depends(get_current_user)):
     if not current_user:
         return RedirectResponse(url="/auth/login", status_code=303)
 
@@ -48,12 +41,3 @@ async def my_boards(
             "title": "Мои доски"
         }
     )
-
-@router.get("/debug/cookies")
-async def debug_cookies(request: Request):
-    """Отладка cookie"""
-    cookies = dict(request.cookies)
-    return JSONResponse({
-        "cookies": cookies,
-        "has_token": "access_token" in cookies
-    })

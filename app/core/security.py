@@ -10,7 +10,7 @@ pwd_context = CryptContext(
 )
 
 
-def verify_password(plain_password: str, hashed_password: str):
+def verify_password(plain_password, hashed_password):
     try:
         return pwd_context.verify(plain_password, hashed_password)
     except Exception as e:
@@ -18,13 +18,13 @@ def verify_password(plain_password: str, hashed_password: str):
         return False
 
 
-def get_password_hash(password: str) -> str:
+def get_password_hash(password):
     if len(password.encode('utf-8')) > 72:
         password = password[:72]
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
+def create_access_token(data, expires_delta = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -36,7 +36,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 
-def decode_access_token(token: str):
+def decode_access_token(token):
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload

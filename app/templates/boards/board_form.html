@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Редактировать' if edit else 'Создать' }} доску{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{{ 'Редактировать доску' if edit else 'Создать новую доску' }}</h1>
+    
+    <form action="{{ '/boards/' + board.id|string + '/edit' if edit else '/boards/new' }}" method="post" class="board-form">
+        <div class="form-group">
+            <label for="name">Название доски</label>
+            <input 
+                type="text" 
+                id="name" 
+                name="name" 
+                required 
+                value="{{ board.name if board else '' }}"
+            >
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Описание</label>
+            <textarea 
+                id="description" 
+                name="description" 
+                rows="4" 
+            >{{ board.description if board else '' }}</textarea>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                {{ 'Сохранить' if edit else 'Создать' }}
+            </button>
+            <a href="{{ '/boards/' + board.id|string if board else '/my-boards' }}" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
