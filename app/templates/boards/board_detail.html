@@ -150,5 +150,17 @@
             editModal.style.display = 'none';
         }
     }
+    function openEditTaskModal(taskId, title, description, status) {
+        document.getElementById('edit_task_id').value = taskId;
+        document.getElementById('edit_title').value = title;
+        document.getElementById('edit_description').value = description;
+        document.getElementById('edit_status').value = status;
+        document.getElementById('editTaskForm').action = `/tasks/${taskId}/update`;
+        document.getElementById('editTaskModal').style.display = 'block';
+    }
+
+    function closeEditTaskModal() {
+        document.getElementById('editTaskModal').style.display = 'none';
+}
 </script>
 {% endblock %}

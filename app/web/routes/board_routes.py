@@ -9,18 +9,24 @@ from app.repositories.task_repository import TaskRepository
 from app.services.board_service import BoardService
 from app.models.user import User
 
-router = APIRouter(prefix="/boards", tags=["boards"])
 templates = Jinja2Templates(directory="app/templates")
+router = APIRouter(prefix="/boards", tags=["boards"])
 
 
 @router.get("/user/{user_id}")
 async def user_boards(
-        request, user_id, db = Depends(get_db), current_user = Depends(get_current_active_user)):
+        request: Request,
+        user_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
+
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
 
     board_repo = BoardRepository(db)
     boards = board_repo.get_user_boards(user_id)
+
 
     return templates.TemplateResponse(
         "boards/my_boards.html",
@@ -33,7 +39,11 @@ async def user_boards(
 
 
 @router.get("/new")
-async def new_board_form(request, current_user = Depends(get_current_active_user)):
+async def new_board_form(
+        request: Request,
+        current_user: User = Depends(get_current_active_user)
+):
+
     return templates.TemplateResponse(
         "boards/board_form.html",
         {
@@ -44,7 +54,14 @@ async def new_board_form(request, current_user = Depends(get_current_active_user
 
 
 @router.post("/new")
-async def create_board(request, name = Form(...), description = Form(""), db = Depends(get_db), current_user = Depends(get_current_active_user)):
+async def create_board(
+        request: Request,
+        name: str = Form(...),
+        description: str = Form(""),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
+
     board_repo = BoardRepository(db)
     task_repo = TaskRepository(db)
     board_service = BoardService(board_repo, task_repo)
@@ -59,7 +76,13 @@ async def create_board(request, name = Form(...), description = Form(""), db = D
 
 
 @router.get("/{board_id}")
-async def view_board(request, board_id, db = Depends(get_db), current_user = Depends(get_current_active_user)):
+async def view_board(
+        request: Request,
+        board_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
+
     board_repo = BoardRepository(db)
     task_repo = TaskRepository(db)
     board_service = BoardService(board_repo, task_repo)
@@ -84,7 +107,12 @@ async def view_board(request, board_id, db = Depends(get_db), current_user = Dep
 
 
 @router.get("/{board_id}/edit")
-async def edit_board_form(request, board_id, db = Depends(get_db), current_user = Depends(get_current_active_user)):
+async def edit_board_form(
+        request: Request,
+        board_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 
@@ -106,7 +134,14 @@ async def edit_board_form(request, board_id, db = Depends(get_db), current_user 
 
 
 @router.post("/{board_id}/edit")
-async def update_board(request, board_id, name = Form(...), description = Form(""), db = Depends(get_db), current_user = Depends(get_current_active_user)):
+async def update_board(
+        request: Request,
+        board_id: int,
+        name: str = Form(...),
+        description: str = Form(""),
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 
@@ -122,7 +157,12 @@ async def update_board(request, board_id, name = Form(...), description = Form("
 
 
 @router.post("/{board_id}/delete")
-async def delete_board(board_id, db = Depends(get_db), current_user = Depends(get_current_active_user)):
+async def delete_board(
+        request: Request,
+        board_id: int,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 
