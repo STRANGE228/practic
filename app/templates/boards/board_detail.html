@@ -11,67 +11,107 @@
         {% endif %}
     </div>
     <div class="board-header-actions">
-        <a href="/boards/{{ board.id }}/edit" class="btn btn-secondary">✏️ Редактировать</a>
-        <button class="btn btn-primary" onclick="openTaskModal()">➕ Добавить задачу</button>
+        <a href="/boards/{{ board.id }}/edit" class="btn btn-secondary">✏️ Редактировать доску</a>
+        <button class="btn btn-primary" onclick="openColumnModal()">➕ Добавить колонку</button>
     </div>
 </div>
 
 <div class="kanban-board" data-board-id="{{ board.id }}">
-    <div class="column" data-status="todo">
-        <div class="column-header">
-            <h2>📝 Нужно сделать</h2>
-            <span class="task-count">{{ columns.todo|length }}</span>
+    {% for column_data in columns %}
+        <div class="column" data-column-id="{{ column_data.column.id }}">
+            <div class="column-header">
+                <div class="column-title">
+                    <h2 contenteditable="false" ondblclick="editColumn(this, {{ column_data.column.id }})">{{ column_data.column.name }}</h2>
+                    <span class="task-count">{{ column_data.tasks|length }}</span>
+                </div>
+                <div class="column-actions">
+                    <button class="btn-icon" onclick="openEditColumnModal({{ column_data.column.id }}, '{{ column_data.column.name }}')" title="Редактировать">✏️</button>
+                    <form action="/columns/{{ column_data.column.id }}/delete" method="post" style="display: inline;" onsubmit="return confirm('Удалить колонку? Все задачи будут удалены!')">
+                        <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+                    </form>
+                    <button class="btn-icon" onclick="openTaskModal({{ column_data.column.id }})" title="Добавить задачу">➕</button>
+                </div>
+            </div>
+            <div class="tasks-container" id="column-{{ column_data.column.id }}" data-column-id="{{ column_data.column.id }}">
+                {% for task in column_data.tasks|sort(attribute='order') %}
+                    {% include "boards/task_card.html" %}
+                {% endfor %}
+            </div>
         </div>
-        <div class="tasks-container" id="todo-tasks" data-status="todo">
-            {% for task in columns.todo|sort(attribute='order') %}
-                {% include "boards/task_card.html" %}
-            {% endfor %}
+    {% else %}
+        <div class="empty-board">
+            <p>На этой доске пока нет колонок</p>
+            <button class="btn btn-primary" onclick="openColumnModal()">Создать первую колонку</button>
         </div>
-    </div>
-    
-    <div class="column" data-status="in_progress">
-        <div class="column-header">
-            <h2>⚡ В процессе</h2>
-            <span class="task-count">{{ columns.in_progress|length }}</span>
-        </div>
-        <div class="tasks-container" id="in-progress-tasks" data-status="in_progress">
-            {% for task in columns.in_progress|sort(attribute='order') %}
-                {% include "boards/task_card.html" %}
-            {% endfor %}
-        </div>
-    </div>
-    
-    <div class="column" data-status="done">
-        <div class="column-header">
-            <h2>✅ Готово</h2>
-            <span class="task-count">{{ columns.done|length }}</span>
-        </div>
-        <div class="tasks-container" id="done-tasks" data-status="done">
-            {% for task in columns.done|sort(attribute='order') %}
-                {% include "boards/task_card.html" %}
-            {% endfor %}
-        </div>
+    {% endfor %}
+</div>
+
+<!-- Модальное окно для создания колонки -->
+<div id="columnModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeColumnModal()">&times;</span>
+        <h2>Новая колонка</h2>
+        <form action="/columns/create" method="post">
+            <input type="hidden" name="board_id" value="{{ board.id }}">
+
+            <div class="form-group">
+                <label for="column_name">Название колонки</label>
+                <input type="text" id="column_name" name="name" required placeholder="Например: В работе, Готово, Бэклог">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Создать</button>
+                <button type="button" class="btn btn-secondary" onclick="closeColumnModal()">Отмена</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Модальное окно для добавления задачи -->
+<!-- Модальное окно для редактирования колонки -->
+<div id="editColumnModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditColumnModal()">&times;</span>
+        <h2>Редактировать колонку</h2>
+        <form id="editColumnForm" method="post">
+            <input type="hidden" id="edit_column_id" name="column_id">
+
+            <div class="form-group">
+                <label for="edit_column_name">Название колонки</label>
+                <input type="text" id="edit_column_name" name="name" required>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEditColumnModal()">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно для создания задачи -->
 <div id="taskModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeTaskModal()">&times;</span>
         <h2>Новая задача</h2>
-        <form action="/tasks/create" method="post">
-            <input type="hidden" name="board_id" value="{{ board.id }}">
-            
+        <form action="/tasks/create" method="post" enctype="multipart/form-data">
+            <input type="hidden" id="task_column_id" name="column_id" value="">
+
             <div class="form-group">
-                <label for="title">Название задачи</label>
-                <input type="text" id="title" name="title" required placeholder="Что нужно сделать?">
+                <label for="task_title">Название задачи *</label>
+                <input type="text" id="task_title" name="title" required placeholder="Что нужно сделать?">
             </div>
-            
+
             <div class="form-group">
-                <label for="description">Описание (необязательно)</label>
-                <textarea id="description" name="description" rows="3" placeholder="Подробности задачи..."></textarea>
+                <label for="task_description">Описание (необязательно)</label>
+                <textarea id="task_description" name="description" rows="3" placeholder="Подробности задачи..."></textarea>
             </div>
-            
+
+            <div class="form-group">
+                <label for="task_images">Изображения (можно выбрать несколько)</label>
+                <input type="file" id="task_images" name="images" multiple accept="image/*">
+                <small class="form-text">Поддерживаются форматы JPG, PNG, GIF</small>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Создать</button>
                 <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Отмена</button>
@@ -85,28 +125,40 @@
     <div class="modal-content">
         <span class="close" onclick="closeEditTaskModal()">&times;</span>
         <h2>Редактировать задачу</h2>
-        <form id="editTaskForm" method="post">
+        <form id="editTaskForm" method="post" enctype="multipart/form-data">
             <input type="hidden" id="edit_task_id" name="task_id">
-            
+
             <div class="form-group">
-                <label for="edit_title">Название задачи</label>
+                <label for="edit_title">Название задачи *</label>
                 <input type="text" id="edit_title" name="title" required>
             </div>
-            
+
             <div class="form-group">
                 <label for="edit_description">Описание</label>
                 <textarea id="edit_description" name="description" rows="3"></textarea>
             </div>
-            
+
             <div class="form-group">
-                <label for="edit_status">Статус</label>
-                <select id="edit_status" name="status">
-                    <option value="todo">Нужно сделать</option>
-                    <option value="in_progress">В процессе</option>
-                    <option value="done">Готово</option>
+                <label for="edit_column">Колонка</label>
+                <select id="edit_column" name="column_id">
+                    {% for column_data in columns %}
+                        <option value="{{ column_data.column.id }}">{{ column_data.column.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
-            
+
+            <div class="form-group">
+                <label>Текущие изображения</label>
+                <div id="current-images" class="image-grid">
+                    <!-- Сюда будут добавляться изображения через JS -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_images">Добавить новые изображения</label>
+                <input type="file" id="edit_images" name="new_images" multiple accept="image/*">
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">Сохранить</button>
                 <button type="button" class="btn btn-secondary" onclick="closeEditTaskModal()">Отмена</button>
@@ -118,49 +170,142 @@
 
 {% block scripts %}
 <script>
-    function openTaskModal() {
+    // Функции для работы с колонками
+    function openColumnModal() {
+        document.getElementById('columnModal').style.display = 'block';
+    }
+
+    function closeColumnModal() {
+        document.getElementById('columnModal').style.display = 'none';
+    }
+
+    function openEditColumnModal(columnId, columnName) {
+        document.getElementById('edit_column_id').value = columnId;
+        document.getElementById('edit_column_name').value = columnName;
+        document.getElementById('editColumnForm').action = `/columns/${columnId}/update`;
+        document.getElementById('editColumnModal').style.display = 'block';
+    }
+
+    function closeEditColumnModal() {
+        document.getElementById('editColumnModal').style.display = 'none';
+    }
+
+    function editColumn(element, columnId) {
+        // Двойной клик для быстрого редактирования
+        const currentName = element.innerText;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.className = 'inline-edit';
+
+        element.innerHTML = '';
+        element.appendChild(input);
+        input.focus();
+
+        input.onblur = function() {
+            const newName = this.value.trim();
+            if (newName && newName !== currentName) {
+                // Отправляем запрос на обновление
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/columns/${columnId}/update`;
+
+                const nameInput = document.createElement('input');
+                nameInput.type = 'hidden';
+                nameInput.name = 'name';
+                nameInput.value = newName;
+
+                form.appendChild(nameInput);
+                document.body.appendChild(form);
+                form.submit();
+            } else {
+                element.innerText = currentName;
+            }
+        };
+    }
+
+    // Функции для работы с задачами
+    function openTaskModal(columnId) {
+        document.getElementById('task_column_id').value = columnId;
         document.getElementById('taskModal').style.display = 'block';
     }
-    
+
     function closeTaskModal() {
         document.getElementById('taskModal').style.display = 'none';
+        document.getElementById('task_title').value = '';
+        document.getElementById('task_description').value = '';
+        document.getElementById('task_images').value = '';
     }
-    
-    function openEditTaskModal(taskId, title, description, status) {
-        document.getElementById('edit_task_id').value = taskId;
-        document.getElementById('edit_title').value = title;
-        document.getElementById('edit_description').value = description;
-        document.getElementById('edit_status').value = status;
-        document.getElementById('editTaskForm').action = `/tasks/${taskId}/update`;
-        document.getElementById('editTaskModal').style.display = 'block';
-    }
-    
-    function closeEditTaskModal() {
-        document.getElementById('editTaskModal').style.display = 'none';
-    }
-    
-    window.onclick = function(event) {
-        const taskModal = document.getElementById('taskModal');
-        const editModal = document.getElementById('editTaskModal');
-        
-        if (event.target == taskModal) {
-            taskModal.style.display = 'none';
+
+    async function openEditTaskModal(taskId) {
+        try {
+            const response = await fetch(`/tasks/${taskId}`);
+            const task = await response.json();
+
+            document.getElementById('edit_task_id').value = task.id;
+            document.getElementById('edit_title').value = task.title;
+            document.getElementById('edit_description').value = task.description;
+            document.getElementById('edit_column').value = task.column_id;
+            document.getElementById('editTaskForm').action = `/tasks/${task.id}/update`;
+
+            // Отображаем текущие изображения
+            const imagesContainer = document.getElementById('current-images');
+            imagesContainer.innerHTML = '';
+
+            if (task.images && task.images.length > 0) {
+                task.images.forEach(img => {
+                    const imgDiv = document.createElement('div');
+                    imgDiv.className = 'image-item';
+                    imgDiv.innerHTML = `
+                        <img src="${img.url}" alt="${img.filename}" class="task-image-thumb">
+                        <div class="image-info">
+                            <span class="image-filename">${img.filename}</span>
+                            <button class="btn-icon" onclick="deleteImage(${img.id})" title="Удалить">🗑️</button>
+                        </div>
+                    `;
+                    imagesContainer.appendChild(imgDiv);
+                });
+            } else {
+                imagesContainer.innerHTML = '<p class="no-images">Нет изображений</p>';
+            }
+
+            document.getElementById('editTaskModal').style.display = 'block';
+        } catch (error) {
+            console.error('Error loading task:', error);
+            alert('Ошибка при загрузке задачи');
         }
-        if (event.target == editModal) {
-            editModal.style.display = 'none';
-        }
-    }
-    function openEditTaskModal(taskId, title, description, status) {
-        document.getElementById('edit_task_id').value = taskId;
-        document.getElementById('edit_title').value = title;
-        document.getElementById('edit_description').value = description;
-        document.getElementById('edit_status').value = status;
-        document.getElementById('editTaskForm').action = `/tasks/${taskId}/update`;
-        document.getElementById('editTaskModal').style.display = 'block';
     }
 
     function closeEditTaskModal() {
         document.getElementById('editTaskModal').style.display = 'none';
-}
+    }
+
+    async function deleteImage(imageId) {
+        if (!confirm('Удалить изображение?')) return;
+
+        try {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/tasks/image/${imageId}/delete`;
+            document.body.appendChild(form);
+            form.submit();
+        } catch (error) {
+            console.error('Error deleting image:', error);
+        }
+    }
+
+    // Закрытие модальных окон при клике вне их
+    window.onclick = function(event) {
+        const modals = [
+            'columnModal', 'editColumnModal', 'taskModal', 'editTaskModal'
+        ];
+
+        modals.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
 </script>
 {% endblock %}

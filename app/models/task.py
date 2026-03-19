@@ -10,14 +10,13 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     description = Column(Text, default="")
-    status = Column(String, default="todo")
+    column_id = Column(Integer, ForeignKey("columns.id", ondelete="CASCADE"), nullable=False)
     order = Column(Integer, default=0)
-    board_id = Column(Integer, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Связи
-    board = relationship("Board", back_populates="tasks")
+    column = relationship("Column", back_populates="tasks")
+    images = relationship("TaskImage", back_populates="task", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Task(id={self.id}, title={self.title}, status={self.status})>"
+        return f"<Task(id={self.id}, title={self.title})>"

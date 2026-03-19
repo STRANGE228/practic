@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import get_current_active_user
 from app.repositories.board_repository import BoardRepository
+from app.repositories.column_repository import ColumnRepository
 from app.repositories.task_repository import TaskRepository
 from app.services.board_service import BoardService
 from app.models.user import User
@@ -82,29 +83,37 @@ async def view_board(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
-
     board_repo = BoardRepository(db)
+    column_repo = ColumnRepository(db)
     task_repo = TaskRepository(db)
-    board_service = BoardService(board_repo, task_repo)
 
-    board_data = board_service.get_board_with_tasks(board_id)
+    board = board_repo.get(board_id)
 
-    if not board_data:
+    if not board:
         raise HTTPException(status_code=404, detail="Доска не найдена")
 
-    if board_data["board"].owner_id != current_user.id:
+    if board.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    columns = column_repo.get_board_columns(board_id)
+    columns_data = []
+
+    for column in columns:
+        tasks = task_repo.get_by_column(column.id)
+        columns_data.append({
+            "column": column,
+            "tasks": tasks
+        })
 
     return templates.TemplateResponse(
         "boards/board_detail.html",
         {
             "request": request,
             "user": current_user,
-            "board": board_data["board"],
-            "columns": board_data["columns"]
+            "board": board,
+            "columns": columns_data
         }
     )
-
 
 @router.get("/{board_id}/edit")
 async def edit_board_form(

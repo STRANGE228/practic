@@ -4,19 +4,18 @@ from sqlalchemy.sql import func
 from app.core.database import Base
 
 
-class Board(Base):
-    __tablename__ = "boards"
+class Column(Base):
+    __tablename__ = "columns"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    description = Column(String, default="")
-    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    order = Column(Integer, default=0)
+    board_id = Column(Integer, ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Связи
-    owner = relationship("User", backref="boards")
-    columns = relationship("Column", back_populates="board", cascade="all, delete-orphan", order_by="Column.order")
+    board = relationship("Board", back_populates="columns")
+    tasks = relationship("Task", back_populates="column", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<Board(id={self.id}, name={self.name})>"
+        return f"<Column(id={self.id}, name={self.name}, board_id={self.board_id})>"
