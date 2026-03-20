@@ -21,7 +21,7 @@
         <div class="column" data-column-id="{{ column_data.column.id }}">
             <div class="column-header">
                 <div class="column-title">
-                    <h2 contenteditable="false" ondblclick="editColumn(this, {{ column_data.column.id }})">{{ column_data.column.name }}</h2>
+                    <h2 ondblclick="editColumn(this, {{ column_data.column.id }})">{{ column_data.column.name }}</h2>
                     <span class="task-count">{{ column_data.tasks|length }}</span>
                 </div>
                 <div class="column-actions">
@@ -48,7 +48,7 @@
 
 <!-- Модальное окно для создания колонки -->
 <div id="columnModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content scrollable-modal">
         <span class="close" onclick="closeColumnModal()">&times;</span>
         <h2>Новая колонка</h2>
         <form action="/columns/create" method="post">
@@ -69,7 +69,7 @@
 
 <!-- Модальное окно для редактирования колонки -->
 <div id="editColumnModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content scrollable-modal">
         <span class="close" onclick="closeEditColumnModal()">&times;</span>
         <h2>Редактировать колонку</h2>
         <form id="editColumnForm" method="post">
@@ -90,10 +90,10 @@
 
 <!-- Модальное окно для создания задачи -->
 <div id="taskModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content scrollable-modal">
         <span class="close" onclick="closeTaskModal()">&times;</span>
         <h2>Новая задача</h2>
-        <form action="/tasks/create" method="post" enctype="multipart/form-data">
+        <form id="taskForm" enctype="multipart/form-data">
             <input type="hidden" id="task_column_id" name="column_id" value="">
 
             <div class="form-group">
@@ -107,13 +107,20 @@
             </div>
 
             <div class="form-group">
-                <label for="task_images">Изображения (можно выбрать несколько)</label>
-                <input type="file" id="task_images" name="images" multiple accept="image/*">
-                <small class="form-text">Поддерживаются форматы JPG, PNG, GIF</small>
+                <label>Изображения</label>
+                <div class="image-upload-area">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('task_file_input').click()">
+                        📁 Выбрать изображения
+                    </button>
+                    <input type="file" id="task_file_input" multiple accept="image/*" style="display: none;" onchange="handleTaskFilesSelect(this)">
+                    <p class="form-text">Можно выбрать несколько изображений. Поддерживаются JPG, PNG, GIF.</p>
+                </div>
             </div>
 
+            <div id="task-images-preview" class="image-grid"></div>
+
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Создать</button>
+                <button type="button" class="btn btn-primary" onclick="submitTaskForm()">Создать</button>
                 <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Отмена</button>
             </div>
         </form>
@@ -122,11 +129,12 @@
 
 <!-- Модальное окно для редактирования задачи -->
 <div id="editTaskModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content scrollable-modal">
         <span class="close" onclick="closeEditTaskModal()">&times;</span>
         <h2>Редактировать задачу</h2>
-        <form id="editTaskForm" method="post" enctype="multipart/form-data">
+        <form id="editTaskForm" enctype="multipart/form-data">
             <input type="hidden" id="edit_task_id" name="task_id">
+            <input type="hidden" id="edit_board_id" name="board_id" value="{{ board.id }}">
 
             <div class="form-group">
                 <label for="edit_title">Название задачи *</label>
@@ -149,28 +157,47 @@
 
             <div class="form-group">
                 <label>Текущие изображения</label>
-                <div id="current-images" class="image-grid">
-                    <!-- Сюда будут добавляться изображения через JS -->
-                </div>
+                <div id="current-images" class="image-grid"></div>
             </div>
 
             <div class="form-group">
-                <label for="edit_images">Добавить новые изображения</label>
-                <input type="file" id="edit_images" name="new_images" multiple accept="image/*">
+                <label>Добавить новые изображения</label>
+                <div class="image-upload-area">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit_file_input').click()">
+                        📁 Выбрать изображения
+                    </button>
+                    <input type="file" id="edit_file_input" multiple accept="image/*" style="display: none;" onchange="handleEditFilesSelect(this)">
+                    <p class="form-text">Можно выбрать несколько изображений</p>
+                </div>
             </div>
 
+            <div id="edit-images-preview" class="image-grid"></div>
+
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Сохранить</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditForm()">Сохранить</button>
                 <button type="button" class="btn btn-secondary" onclick="closeEditTaskModal()">Отмена</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Модальное окно для просмотра изображения -->
+<div id="imageViewModal" class="modal">
+    <div class="modal-content image-view-content">
+        <span class="close" onclick="closeImageViewModal()">&times;</span>
+        <img id="fullsize-image" src="" alt="Full size image">
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // Функции для работы с колонками
+    // ========== Глобальные переменные ==========
+    let selectedTaskFiles = [];
+    let selectedEditFiles = [];
+    let currentTaskImages = [];
+
+    // ========== Функции для работы с колонками ==========
     function openColumnModal() {
         document.getElementById('columnModal').style.display = 'block';
     }
@@ -191,7 +218,6 @@
     }
 
     function editColumn(element, columnId) {
-        // Двойной клик для быстрого редактирования
         const currentName = element.innerText;
         const input = document.createElement('input');
         input.type = 'text';
@@ -205,7 +231,6 @@
         input.onblur = function() {
             const newName = this.value.trim();
             if (newName && newName !== currentName) {
-                // Отправляем запрос на обновление
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = `/columns/${columnId}/update`;
@@ -224,17 +249,22 @@
         };
     }
 
-    // Функции для работы с задачами
+    // ========== Функции для работы с задачами ==========
     function openTaskModal(columnId) {
         document.getElementById('task_column_id').value = columnId;
         document.getElementById('taskModal').style.display = 'block';
+        // Очищаем предыдущие файлы
+        selectedTaskFiles = [];
+        updateTaskPreview();
     }
 
     function closeTaskModal() {
         document.getElementById('taskModal').style.display = 'none';
         document.getElementById('task_title').value = '';
         document.getElementById('task_description').value = '';
-        document.getElementById('task_images').value = '';
+        document.getElementById('task_file_input').value = '';
+        selectedTaskFiles = [];
+        updateTaskPreview();
     }
 
     async function openEditTaskModal(taskId) {
@@ -246,22 +276,27 @@
             document.getElementById('edit_title').value = task.title;
             document.getElementById('edit_description').value = task.description;
             document.getElementById('edit_column').value = task.column_id;
-            document.getElementById('editTaskForm').action = `/tasks/${task.id}/update`;
+
+            // Сохраняем текущие изображения
+            currentTaskImages = task.images || [];
+
+            // Сбрасываем новые файлы
+            selectedEditFiles = [];
+            document.getElementById('edit_file_input').value = '';
+            updateEditPreview();
 
             // Отображаем текущие изображения
             const imagesContainer = document.getElementById('current-images');
             imagesContainer.innerHTML = '';
 
-            if (task.images && task.images.length > 0) {
-                task.images.forEach(img => {
+            if (currentTaskImages.length > 0) {
+                currentTaskImages.forEach(img => {
                     const imgDiv = document.createElement('div');
-                    imgDiv.className = 'image-item';
+                    imgDiv.className = 'image-preview-item';
                     imgDiv.innerHTML = `
-                        <img src="${img.url}" alt="${img.filename}" class="task-image-thumb">
-                        <div class="image-info">
-                            <span class="image-filename">${img.filename}</span>
-                            <button class="btn-icon" onclick="deleteImage(${img.id})" title="Удалить">🗑️</button>
-                        </div>
+                        <img src="${img.url}" alt="${img.filename}" onclick="viewImage('${img.url}')" style="cursor: pointer;">
+                        <div class="preview-filename" title="${img.filename}">${truncateFilename(img.filename)}</div>
+                        <button type="button" class="remove-preview" onclick="deleteImage(${img.id})" title="Удалить">✕</button>
                     `;
                     imagesContainer.appendChild(imgDiv);
                 });
@@ -278,32 +313,200 @@
 
     function closeEditTaskModal() {
         document.getElementById('editTaskModal').style.display = 'none';
+        selectedEditFiles = [];
+        updateEditPreview();
     }
 
+    // ========== Функции для работы с файлами (создание задачи) ==========
+    function handleTaskFilesSelect(input) {
+        if (input.files && input.files.length > 0) {
+            for (let i = 0; i < input.files.length; i++) {
+                selectedTaskFiles.push(input.files[i]);
+            }
+            input.value = '';
+            updateTaskPreview();
+        }
+    }
+
+    function updateTaskPreview() {
+        const preview = document.getElementById('task-images-preview');
+        preview.innerHTML = '';
+
+        selectedTaskFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <div class="preview-filename">${truncateFilename(file.name)}</div>
+                    <button type="button" class="remove-preview" onclick="removeTaskFile(${index})">✕</button>
+                `;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function removeTaskFile(index) {
+        selectedTaskFiles.splice(index, 1);
+        updateTaskPreview();
+    }
+
+    async function submitTaskForm() {
+        const formData = new FormData();
+        formData.append('column_id', document.getElementById('task_column_id').value);
+        formData.append('title', document.getElementById('task_title').value);
+        formData.append('description', document.getElementById('task_description').value);
+
+        selectedTaskFiles.forEach(file => {
+            formData.append('images', file);
+        });
+
+        try {
+            const response = await fetch('/tasks/create', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                const data = await response.json();
+                alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Ошибка при создании задачи');
+        }
+    }
+
+    // ========== Функции для работы с файлами (редактирование задачи) ==========
+    function handleEditFilesSelect(input) {
+        if (input.files && input.files.length > 0) {
+            for (let i = 0; i < input.files.length; i++) {
+                selectedEditFiles.push(input.files[i]);
+            }
+            input.value = '';
+            updateEditPreview();
+        }
+    }
+
+    function updateEditPreview() {
+        const preview = document.getElementById('edit-images-preview');
+        preview.innerHTML = '';
+
+        selectedEditFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <div class="preview-filename">${truncateFilename(file.name)}</div>
+                    <button type="button" class="remove-preview" onclick="removeEditFile(${index})">✕</button>
+                `;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function removeEditFile(index) {
+        selectedEditFiles.splice(index, 1);
+        updateEditPreview();
+    }
+
+    async function submitEditForm() {
+        const formData = new FormData();
+        const taskId = document.getElementById('edit_task_id').value;
+
+        formData.append('title', document.getElementById('edit_title').value);
+        formData.append('description', document.getElementById('edit_description').value);
+        formData.append('column_id', document.getElementById('edit_column').value);
+
+        // Добавляем новые изображения
+        if (selectedEditFiles.length > 0) {
+            selectedEditFiles.forEach(file => {
+                formData.append('new_images', file);
+            });
+        }
+
+        try {
+            const response = await fetch(`/tasks/${taskId}/update`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                const data = await response.json();
+                alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Ошибка при обновлении задачи');
+        }
+    }
+
+    // ========== Функции для работы с изображениями ==========
     async function deleteImage(imageId) {
         if (!confirm('Удалить изображение?')) return;
 
         try {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/tasks/image/${imageId}/delete`;
-            document.body.appendChild(form);
-            form.submit();
+            const formData = new FormData();
+            formData.append('image_id', imageId);
+
+            const response = await fetch(`/tasks/image/${imageId}/delete`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.redirected) {
+                window.location.reload();
+            }
         } catch (error) {
             console.error('Error deleting image:', error);
         }
     }
 
-    // Закрытие модальных окон при клике вне их
+    function viewImage(imageUrl) {
+        document.getElementById('fullsize-image').src = imageUrl;
+        document.getElementById('imageViewModal').style.display = 'block';
+    }
+
+    function closeImageViewModal() {
+        document.getElementById('imageViewModal').style.display = 'none';
+    }
+
+    function truncateFilename(filename, maxLength = 20) {
+        if (filename.length <= maxLength) return filename;
+        const lastDot = filename.lastIndexOf('.');
+        if (lastDot === -1) return filename.substr(0, maxLength) + '...';
+        const ext = filename.substr(lastDot);
+        const name = filename.substr(0, lastDot);
+        return name.substr(0, maxLength - ext.length - 3) + '...' + ext;
+    }
+
+    // ========== Закрытие модальных окон при клике вне их ==========
     window.onclick = function(event) {
         const modals = [
-            'columnModal', 'editColumnModal', 'taskModal', 'editTaskModal'
+            'columnModal', 'editColumnModal', 'taskModal', 'editTaskModal', 'imageViewModal'
         ];
 
         modals.forEach(modalId => {
             const modal = document.getElementById(modalId);
             if (event.target == modal) {
                 modal.style.display = 'none';
+                // Очищаем данные при закрытии
+                if (modalId === 'taskModal') {
+                    selectedTaskFiles = [];
+                    updateTaskPreview();
+                } else if (modalId === 'editTaskModal') {
+                    selectedEditFiles = [];
+                    updateEditPreview();
+                }
             }
         });
     }

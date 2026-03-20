@@ -31,6 +31,7 @@ async def create_task(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+
     column_repo = ColumnRepository(db)
     board_repo = BoardRepository(db)
 
@@ -49,7 +50,7 @@ async def create_task(
     try:
         task = task_service.create_task(title, description, column_id)
 
-        if images:
+        if images and images[0].filename:
             for image in images:
                 if image.filename:
                     ext = os.path.splitext(image.filename)[1]
@@ -70,7 +71,6 @@ async def create_task(
         return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
 
 @router.get("/{task_id}")
 async def get_task_json(
@@ -119,6 +119,7 @@ async def update_task(
         title: str = Form(...),
         description: str = Form(""),
         column_id: int = Form(...),
+        new_images: List[UploadFile] = File(None),
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
@@ -142,8 +143,31 @@ async def update_task(
 
     task_repo.update(task, title=title, description=description, column_id=column_id)
 
-    return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
+    if new_images and new_images[0].filename:
+        for image in new_images:
+            if image and image.filename:
+                try:
+                    content = await image.read()
 
+                    if content:
+                        ext = os.path.splitext(image.filename)[1]
+                        filename = f"{uuid.uuid4()}{ext}"
+                        file_path = os.path.join(UPLOAD_DIR, filename)
+
+                        with open(file_path, "wb") as f:
+                            f.write(content)
+
+                        task_service.add_image_to_task(
+                            task_id,
+                            image.filename,
+                            f"/static/uploads/{filename}",
+                            len(content)
+                        )
+                except Exception as e:
+                    print(f"Error saving image: {e}")
+                    continue
+
+    return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
 
 @router.post("/{task_id}/add-image")
 async def add_task_image(
@@ -247,7 +271,7 @@ async def move_task(
     new_column_id = data.get("column_id")
     new_order = data.get("order", 0)
 
-    if not new_column_id:
+    if new_column_id is None:
         return JSONResponse(
             status_code=400,
             content={"success": False, "error": "Не указан column_id"}

@@ -1,8 +1,9 @@
 let draggedTask = null;
 let dragOverColumn = null;
-let originalStatus = null;
+let originalColumnId = null;
 let originalOrder = null;
 let originalContainer = null;
+let dragStartY = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeDragAndDrop();
@@ -15,6 +16,7 @@ function initializeDragAndDrop() {
     tasks.forEach(task => {
         task.addEventListener('dragstart', handleDragStart);
         task.addEventListener('dragend', handleDragEnd);
+        task.setAttribute('draggable', 'true');
     });
 
     containers.forEach(container => {
@@ -22,15 +24,22 @@ function initializeDragAndDrop() {
         container.addEventListener('dragleave', handleDragLeave);
         container.addEventListener('drop', handleDrop);
     });
+
+    console.log('Drag and drop initialized');
 }
 
 function handleDragStart(e) {
     draggedTask = e.target.closest('.task-card');
+    if (!draggedTask) return;
+
     const taskId = draggedTask.dataset.taskId;
+    dragStartY = e.clientY;
 
     // Сохраняем исходное состояние
     originalContainer = draggedTask.closest('.tasks-container');
-    originalStatus = draggedTask.closest('.column').dataset.status;
+    if (!originalContainer) return;
+
+    originalColumnId = originalContainer.dataset.columnId;
 
     // Получаем исходный порядок
     const tasks = Array.from(originalContainer.querySelectorAll('.task-card'));
@@ -40,7 +49,7 @@ function handleDragStart(e) {
     e.dataTransfer.effectAllowed = 'move';
     draggedTask.classList.add('dragging');
 
-    console.log(`Drag start: task ${taskId}, status ${originalStatus}, order ${originalOrder}`);
+    console.log(`Drag start: task ${taskId}, column ${originalColumnId}, order ${originalOrder}`);
 }
 
 function handleDragEnd(e) {
@@ -52,12 +61,15 @@ function handleDragEnd(e) {
         dragOverColumn.classList.remove('drag-over');
     }
 
-    // Сбрасываем переменные, но не сразу, чтобы handleDrop мог использовать их
+    // Удаляем все индикаторы
+    removeDropIndicators();
+
+    // Сбрасываем переменные
     setTimeout(() => {
         draggedTask = null;
         dragOverColumn = null;
         originalContainer = null;
-        originalStatus = null;
+        originalColumnId = null;
         originalOrder = null;
     }, 100);
 }
@@ -67,25 +79,69 @@ function handleDragOver(e) {
     e.dataTransfer.dropEffect = 'move';
 
     const container = e.target.closest('.tasks-container');
-    if (container && container !== dragOverColumn) {
-        if (dragOverColumn) {
+    if (container) {
+        // Подсвечиваем весь контейнер
+        if (dragOverColumn && dragOverColumn !== container) {
             dragOverColumn.classList.remove('drag-over');
         }
+
+        container.classList.add('drag-over');
         dragOverColumn = container;
-        dragOverColumn.classList.add('drag-over');
+
+        // Показываем индикатор позиции
+        showDropPositionIndicator(e, container);
     }
+}
+
+function showDropPositionIndicator(e, container) {
+    // Удаляем старые индикаторы
+    removeDropIndicators();
+
+    const tasks = Array.from(container.querySelectorAll('.task-card:not(.dragging)'));
+    const mouseY = e.clientY;
+
+    // Создаем индикатор
+    const indicator = document.createElement('div');
+    indicator.className = 'drop-position-indicator';
+
+    if (tasks.length === 0) {
+        // Если в колонке нет задач, индикатор вверху
+        container.insertBefore(indicator, container.firstChild);
+        return;
+    }
+
+    // Определяем позицию для вставки
+    for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i];
+        const rect = task.getBoundingClientRect();
+        const taskMiddle = rect.top + rect.height / 2;
+
+        if (mouseY < taskMiddle) {
+            container.insertBefore(indicator, task);
+            return;
+        }
+    }
+
+    // Вставляем в конец
+    container.appendChild(indicator);
+}
+
+function removeDropIndicators() {
+    document.querySelectorAll('.drop-position-indicator').forEach(el => el.remove());
 }
 
 function handleDragLeave(e) {
     const container = e.target.closest('.tasks-container');
-    if (container && container === dragOverColumn) {
+    if (container) {
         container.classList.remove('drag-over');
-        dragOverColumn = null;
+        removeDropIndicators();
     }
 }
 
 async function handleDrop(e) {
     e.preventDefault();
+
+    removeDropIndicators();
 
     if (dragOverColumn) {
         dragOverColumn.classList.remove('drag-over');
@@ -97,16 +153,20 @@ async function handleDrop(e) {
         return;
     }
 
-    const targetColumn = targetContainer.closest('.column');
-    const newStatus = targetColumn.dataset.status;
+    const targetColumnId = targetContainer.dataset.columnId;
     const taskId = draggedTask.dataset.taskId;
     const boardId = document.querySelector('.kanban-board').dataset.boardId;
 
-    // Получаем все задачи в целевой колонке (кроме перетаскиваемой)
+    if (!targetColumnId || !boardId) {
+        console.error('Missing column or board ID');
+        return;
+    }
+
+    // Получаем все задачи в целевой колонке
     const tasksInColumn = Array.from(targetContainer.querySelectorAll('.task-card:not(.dragging)'));
     let newOrder = tasksInColumn.length;
 
-    // Определяем позицию, куда вставили задачу
+    // Определяем позицию для вставки
     const mouseY = e.clientY;
     for (let i = 0; i < tasksInColumn.length; i++) {
         const task = tasksInColumn[i];
@@ -119,29 +179,34 @@ async function handleDrop(e) {
         }
     }
 
-    console.log(`Drop: task ${taskId} from ${originalStatus}(${originalOrder}) to ${newStatus}(${newOrder})`);
+    console.log(`Drop: task ${taskId} from column ${originalColumnId}(${originalOrder}) to column ${targetColumnId}(${newOrder})`);
 
     // Проверяем, действительно ли что-то изменилось
-    if (newStatus === originalStatus && newOrder === originalOrder) {
+    if (originalColumnId === targetColumnId && originalOrder === newOrder) {
         console.log('No changes, ignoring drop');
         return;
     }
 
-    // Визуально перемещаем задачу сразу для лучшего UX
-    if (newOrder < tasksInColumn.length) {
-        targetContainer.insertBefore(draggedTask, tasksInColumn[newOrder]);
-    } else {
-        targetContainer.appendChild(draggedTask);
-    }
-
+    // Визуально перемещаем задачу
     try {
+        // Удаляем задачу из исходного контейнера
+        draggedTask.remove();
+
+        // Вставляем в новое место
+        if (newOrder < tasksInColumn.length) {
+            targetContainer.insertBefore(draggedTask, tasksInColumn[newOrder]);
+        } else {
+            targetContainer.appendChild(draggedTask);
+        }
+
+        // Отправляем запрос на сервер
         const response = await fetch(`/tasks/${taskId}/move`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                status: newStatus,
+                column_id: parseInt(targetColumnId),
                 order: newOrder
             })
         });
@@ -153,16 +218,16 @@ async function handleDrop(e) {
             // Успешно - обновляем счетчики
             updateTasksCounters();
 
-            // Если статус изменился, переупорядочиваем обе колонки
-            if (newStatus !== originalStatus) {
-                const originalContainer = document.querySelector(`.column[data-status="${originalStatus}"] .tasks-container`);
+            // Если колонка изменилась, переупорядочиваем исходную колонку
+            if (originalColumnId !== targetColumnId) {
+                const originalContainer = document.querySelector(`.tasks-container[data-column-id="${originalColumnId}"]`);
                 if (originalContainer) {
-                    await reorderColumn(originalContainer, boardId, originalStatus);
+                    await reorderColumn(originalContainer, boardId, originalColumnId);
                 }
             }
 
             // Переупорядочиваем целевую колонку
-            await reorderColumn(targetContainer, boardId, newStatus);
+            await reorderColumn(targetContainer, boardId, targetColumnId);
 
             console.log('Task moved successfully');
         } else {
@@ -182,7 +247,6 @@ function revertTaskPosition() {
     if (draggedTask && originalContainer) {
         console.log('Reverting task to original position');
 
-        // Возвращаем задачу на исходное место
         const tasksInOriginal = Array.from(originalContainer.querySelectorAll('.task-card:not(.dragging)'));
 
         if (originalOrder < tasksInOriginal.length) {
@@ -195,9 +259,11 @@ function revertTaskPosition() {
     }
 }
 
-async function reorderColumn(container, boardId, status) {
+async function reorderColumn(container, boardId, columnId) {
     const tasks = Array.from(container.querySelectorAll('.task-card'));
     const taskOrders = tasks.map(task => parseInt(task.dataset.taskId));
+
+    if (taskOrders.length === 0) return;
 
     try {
         const response = await fetch(`/tasks/reorder`, {
@@ -206,8 +272,7 @@ async function reorderColumn(container, boardId, status) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                board_id: parseInt(boardId),
-                status: status,
+                column_id: parseInt(columnId),
                 task_orders: taskOrders
             })
         });
@@ -230,19 +295,45 @@ function updateTasksCounters() {
     });
 }
 
-// Добавляем стиль для drag-over
+// Добавляем стили
 const style = document.createElement('style');
 style.textContent = `
     .tasks-container.drag-over {
-        background: rgba(52, 152, 219, 0.1);
-        border: 2px dashed #3498db;
+        background: rgba(52, 152, 219, 0.15);
+        border: 3px dashed #3498db;
         min-height: 100px;
+        border-radius: 4px;
+        box-shadow: inset 0 0 10px rgba(52, 152, 219, 0.2);
     }
     
     .task-card.dragging {
         opacity: 0.5;
-        transform: rotate(2deg);
-        box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        transform: rotate(2deg) scale(0.98);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        cursor: grabbing;
+    }
+    
+    .task-card {
+        cursor: grab;
+        transition: transform 0.2s, box-shadow 0.2s;
+        user-select: none;
+    }
+    
+    .task-card:active {
+        cursor: grabbing;
+    }
+    
+    .drop-position-indicator {
+        height: 4px;
+        background: linear-gradient(90deg, #3498db, #9b59b6);
+        margin: 5px 0;
+        border-radius: 2px;
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
     }
 `;
 document.head.appendChild(style);

@@ -1,15 +1,33 @@
 <div class="task-card" id="task-{{ task.id }}" draggable="true" data-task-id="{{ task.id }}">
     <div class="task-card-header">
         <h4>{{ task.title }}</h4>
-        <button class="btn-icon" onclick="openEditTaskModal('{{ task.id }}', '{{ task.title }}', '{{ task.description }}', '{{ task.status }}')" title="Редактировать">✏️</button>
+        <button class="btn-icon" onclick="openEditTaskModal('{{ task.id }}')" title="Редактировать">✏️</button>
     </div>
+
     {% if task.description %}
         <p class="task-description">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</p>
     {% endif %}
+
+    {% if task.images and task.images|length > 0 %}
+        <div class="task-images-preview">
+            {% for image in task.images[:3] %}
+                <img src="{{ image.file_path }}" alt="{{ image.filename }}" class="task-thumbnail" onclick="viewImage('{{ image.file_path }}')" title="{{ image.filename }}">
+            {% endfor %}
+            {% if task.images|length > 3 %}
+                <span class="more-images" title="Ещё {{ task.images|length - 3 }} изображений">+{{ task.images|length - 3 }}</span>
+            {% endif %}
+        </div>
+    {% endif %}
+
     <div class="task-meta">
-        <span class="task-date">{{ task.created_at.strftime('%d.%m') }}</span>
-        <form action="/tasks/{{ task.id }}/delete" method="post" style="display: inline;" onsubmit="return confirm('Удалить задачу?')">
-            <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
-        </form>
+        <span class="task-date">{{ task.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+        <div class="task-actions">
+            {% if task.images and task.images|length > 0 %}
+                <span class="image-count" title="Всего изображений: {{ task.images|length }}">🖼️ {{ task.images|length }}</span>
+            {% endif %}
+            <form action="/tasks/{{ task.id }}/delete" method="post" style="display: inline;" onsubmit="return confirm('Удалить задачу?')">
+                <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+            </form>
+        </div>
     </div>
 </div>

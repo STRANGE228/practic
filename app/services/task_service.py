@@ -42,7 +42,7 @@ class TaskService:
     def reorder_tasks(self, column_id, task_orders):
         self.task_repo.reorder_tasks(column_id, task_orders)
 
-    def add_image_to_task(self, task_id, filename, file_path, file_size = None):
+    def add_image_to_task(self, task_id: int, filename: str, file_path: str, file_size: int = None):
         if not self.image_repo:
             raise ValueError("Image repository not initialized")
 
@@ -50,7 +50,14 @@ class TaskService:
         if not task:
             raise ValueError(f"Задача с id {task_id} не найдена")
 
-        return self.image_repo.create_image(filename, file_path, task_id, file_size)
+        image = self.image_repo.create_image(
+            filename=filename,
+            file_path=file_path,
+            task_id=task_id,
+            file_size=file_size
+        )
+
+        return image
 
     def delete_task_image(self, image_id):
         if not self.image_repo:
