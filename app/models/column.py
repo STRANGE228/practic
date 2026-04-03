@@ -14,8 +14,10 @@ class Column(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    board = relationship("Board", back_populates="columns")
-    tasks = relationship("Task", back_populates="column", cascade="all, delete-orphan")
+    # Связи
+    column_board = relationship("Board", back_populates="board_columns")
+    column_tasks = relationship("Task", back_populates="task_column", cascade="all, delete-orphan",
+                                order_by="Task.order")
 
     def __repr__(self):
         return f"<Column(id={self.id}, name={self.name}, board_id={self.board_id})>"

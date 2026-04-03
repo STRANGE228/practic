@@ -999,3 +999,94 @@ body {
     border-radius: 4px;
     cursor: pointer;
 }
+
+/* Стили для секции участников */
+.board-members-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.members-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.members-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.member-info strong {
+    color: #2c3e50;
+}
+
+.member-email {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.member-role {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.member-role.owner {
+    background: #ffc107;
+    color: #856404;
+}
+
+.member-role.editor {
+    background: #17a2b8;
+    color: white;
+}
+
+.member-role.viewer {
+    background: #6c757d;
+    color: white;
+}
+
+.invite-link-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.invite-link-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}

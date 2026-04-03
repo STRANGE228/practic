@@ -9,10 +9,8 @@ from app.repositories.column_repository import ColumnRepository
 from app.repositories.board_repository import BoardRepository
 from app.services.task_service import TaskService
 from app.models.user import User
-from typing import Optional, List
+from typing import List, Optional
 import os
-import shutil
-from datetime import datetime
 import uuid
 
 UPLOAD_DIR = "app/static/uploads"
@@ -31,7 +29,6 @@ async def create_task(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
-
     column_repo = ColumnRepository(db)
     board_repo = BoardRepository(db)
 
@@ -52,25 +49,31 @@ async def create_task(
 
         if images and images[0].filename:
             for image in images:
-                if image.filename:
-                    ext = os.path.splitext(image.filename)[1]
-                    filename = f"{uuid.uuid4()}{ext}"
-                    file_path = os.path.join(UPLOAD_DIR, filename)
+                if image and image.filename:
+                    try:
+                        content = await image.read()
+                        if content:
+                            ext = os.path.splitext(image.filename)[1]
+                            filename = f"{uuid.uuid4()}{ext}"
+                            file_path = os.path.join(UPLOAD_DIR, filename)
 
-                    content = await image.read()
-                    with open(file_path, "wb") as f:
-                        f.write(content)
+                            with open(file_path, "wb") as f:
+                                f.write(content)
 
-                    task_service.add_image_to_task(
-                        task.id,
-                        image.filename,
-                        f"/static/uploads/{filename}",
-                        len(content)
-                    )
+                            task_service.add_image_to_task(
+                                task.id,
+                                image.filename,
+                                f"/static/uploads/{filename}",
+                                len(content)
+                            )
+                    except Exception as e:
+                        print(f"Error saving image: {e}")
+                        continue
 
         return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.get("/{task_id}")
 async def get_task_json(
@@ -107,7 +110,7 @@ async def get_task_json(
                 "url": img.file_path,
                 "size": img.file_size
             }
-            for img in task.images
+            for img in task.task_images  # Исправлено: task_images вместо images
         ]
     }
 
@@ -132,7 +135,6 @@ async def update_task(
     task = task_repo.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
-
     column = column_repo.get(task.column_id)
     if not column:
         raise HTTPException(status_code=404, detail="Колонка не найдена")
@@ -148,7 +150,6 @@ async def update_task(
             if image and image.filename:
                 try:
                     content = await image.read()
-
                     if content:
                         ext = os.path.splitext(image.filename)[1]
                         filename = f"{uuid.uuid4()}{ext}"
@@ -166,89 +167,6 @@ async def update_task(
                 except Exception as e:
                     print(f"Error saving image: {e}")
                     continue
-
-    return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
-
-@router.post("/{task_id}/add-image")
-async def add_task_image(
-        task_id: int,
-        request: Request,
-        image: UploadFile = File(...),
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_active_user)
-):
-    if not image.filename:
-        raise HTTPException(status_code=400, detail="Файл не выбран")
-
-    task_repo = TaskRepository(db)
-    image_repo = TaskImageRepository(db)
-    column_repo = ColumnRepository(db)
-    board_repo = BoardRepository(db)
-    task_service = TaskService(task_repo, image_repo)
-
-    task = task_repo.get(task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Задача не найдена")
-
-    column = column_repo.get(task.column_id)
-    if not column:
-        raise HTTPException(status_code=404, detail="Колонка не найдена")
-
-    board = board_repo.get(column.board_id)
-    if not board or board.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Доступ запрещен")
-
-    try:
-        ext = os.path.splitext(image.filename)[1]
-        filename = f"{uuid.uuid4()}{ext}"
-        file_path = os.path.join(UPLOAD_DIR, filename)
-
-        content = await image.read()
-        with open(file_path, "wb") as f:
-            f.write(content)
-
-        task_service.add_image_to_task(
-            task_id,
-            image.filename,
-            f"/static/uploads/{filename}",
-            len(content)
-        )
-
-        return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/image/{image_id}/delete")
-async def delete_task_image(
-        image_id: int,
-        request: Request,
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_active_user)
-):
-    image_repo = TaskImageRepository(db)
-    task_repo = TaskRepository(db)
-    column_repo = ColumnRepository(db)
-    board_repo = BoardRepository(db)
-    task_service = TaskService(task_repo, image_repo)
-
-    image = image_repo.get(image_id)
-    if not image:
-        raise HTTPException(status_code=404, detail="Изображение не найдено")
-
-    task = task_repo.get(image.task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Задача не найдена")
-
-    column = column_repo.get(task.column_id)
-    if not column:
-        raise HTTPException(status_code=404, detail="Колонка не найдена")
-
-    board = board_repo.get(column.board_id)
-    if not board or board.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Доступ запрещен")
-
-    task_service.delete_task_image(image_id)
 
     return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
 
@@ -379,6 +297,40 @@ async def reorder_tasks(
             status_code=400,
             content={"success": False, "error": str(e)}
         )
+
+
+@router.post("/image/{image_id}/delete")
+async def delete_task_image(
+        image_id: int,
+        request: Request,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
+    image_repo = TaskImageRepository(db)
+    task_repo = TaskRepository(db)
+    column_repo = ColumnRepository(db)
+    board_repo = BoardRepository(db)
+    task_service = TaskService(task_repo, image_repo)
+
+    image = image_repo.get(image_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="Изображение не найдено")
+
+    task = task_repo.get(image.task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+
+    column = column_repo.get(task.column_id)
+    if not column:
+        raise HTTPException(status_code=404, detail="Колонка не найдена")
+
+    board = board_repo.get(column.board_id)
+    if not board or board.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    task_service.delete_task_image(image_id)
+
+    return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
 
 
 @router.post("/{task_id}/delete")

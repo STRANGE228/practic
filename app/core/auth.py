@@ -72,3 +72,26 @@ async def get_current_active_user(
             detail="Inactive user"
         )
     return current_user
+
+
+async def get_current_user_ws(token, db):
+    if not token:
+        return None
+
+    payload = decode_access_token(token)
+    if payload is None:
+        return None
+
+    user_id = payload.get("sub")
+    if user_id is None:
+        return None
+
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        return None
+
+    user_repo = UserRepository(db)
+    user = user_repo.get(user_id)
+
+    return user

@@ -5,6 +5,167 @@ let originalOrder = null;
 let originalContainer = null;
 let dragStartY = 0;
 
+// ========== WebSocket для real-time синхронизации ==========
+let ws = null;
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+
+function connectWebSocket() {
+    const boardElement = document.querySelector('.kanban-board');
+    if (!boardElement) return;
+
+    const boardId = boardElement.dataset.boardId;
+    // Получаем токен из cookie
+    const cookies = document.cookie.split('; ');
+    let token = '';
+    for (let cookie of cookies) {
+        if (cookie.startsWith('access_token=')) {
+            token = cookie.split('=')[1].replace('Bearer ', '');
+            break;
+        }
+    }
+
+    if (!token || !boardId) {
+        console.log('No token or boardId found');
+        return;
+    }
+
+    const wsUrl = `ws://${window.location.host}/ws/${boardId}/${token}`;
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = function() {
+        console.log('WebSocket connected');
+        reconnectAttempts = 0;
+
+        // Отправляем ping каждые 30 секунд
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, 1000);
+    };
+
+    ws.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message:', data);
+
+        switch (data.type) {
+            case 'task_updated':
+                updateTaskInUI(data.task);
+                break;
+            case 'task_deleted':
+                removeTaskFromUI(data.task_id);
+                break;
+            case 'column_updated':
+                updateColumnInUI(data.column);
+                break;
+            case 'user_connected':
+                showNotification(`Пользователь подключился`);
+                break;
+            case 'user_disconnected':
+                showNotification(`Пользователь отключился`);
+                break;
+        }
+    };
+
+    ws.onclose = function() {
+        console.log('WebSocket disconnected');
+        if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            setTimeout(connectWebSocket, 2000 * reconnectAttempts);
+        }
+    };
+
+    ws.onerror = function(error) {
+        console.error('WebSocket error:', error);
+    };
+}
+
+function updateTaskInUI(taskData) {
+    const taskElement = document.getElementById(`task-${taskData.id}`);
+    if (taskElement) {
+        // Обновляем содержимое задачи без перезагрузки
+        const titleElement = taskElement.querySelector('h4');
+        if (titleElement) titleElement.textContent = taskData.title;
+
+        const descElement = taskElement.querySelector('.task-description');
+        if (descElement && taskData.description) {
+            descElement.textContent = taskData.description.length > 100 ?
+                taskData.description.substring(0, 100) + '...' :
+                taskData.description;
+        }
+
+        // Обновляем дату
+        const dateElement = taskElement.querySelector('.task-date');
+        if (dateElement && taskData.updated_at) {
+            dateElement.textContent = new Date(taskData.updated_at).toLocaleString();
+        }
+    } else {
+        location.reload();
+    }
+}
+
+function removeTaskFromUI(taskId) {
+    const taskElement = document.getElementById(`task-${taskId}`);
+    if (taskElement) {
+        taskElement.remove();
+        updateTasksCounters();
+    }
+}
+
+function updateColumnInUI(columnData) {
+    const columnElement = document.querySelector(`.column[data-column-id="${columnData.id}"]`);
+    if (columnElement) {
+        const titleElement = columnElement.querySelector('.column-title h2');
+        if (titleElement) {
+            titleElement.textContent = columnData.name;
+        }
+    }
+}
+
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #2c3e50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 9999;
+        animation: slideIn 0.3s ease-out;
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Добавляем стили для уведомлений
+const notificationStyle = document.createElement('style');
+notificationStyle.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(notificationStyle);
+
+// Подключаем WebSocket при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    connectWebSocket();
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeDragAndDrop();
 });

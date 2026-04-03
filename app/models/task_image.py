@@ -14,7 +14,8 @@ class TaskImage(Base):
     task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    task = relationship("Task", back_populates="images")
+    # Связи
+    image_task = relationship("Task", back_populates="task_images")
 
     def __repr__(self):
         return f"<TaskImage(id={self.id}, filename={self.filename}, task_id={self.task_id})>"

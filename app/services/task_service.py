@@ -12,7 +12,7 @@ class TaskService:
         self.task_repo = task_repo
         self.image_repo = image_repo
 
-    def create_task(self, title, description, column_id):
+    def create_task(self, title: str, description: str, column_id: int):
         if not title or not title.strip():
             raise ValueError("Название задачи не может быть пустым")
 
@@ -25,10 +25,10 @@ class TaskService:
             column_id=column_id
         )
 
-    def get_task_with_images(self, task_id):
+    def get_task_with_images(self, task_id: int):
         return self.task_repo.get_with_images(task_id)
 
-    def move_task(self, task_id, new_column_id, new_order):
+    def move_task(self, task_id: int, new_column_id: int, new_order: int):
         task = self.task_repo.get(task_id)
         if not task:
             raise ValueError(f"Задача с id {task_id} не найдена")
@@ -39,7 +39,7 @@ class TaskService:
         updated_task = self.task_repo.move_task(task_id, new_column_id, new_order)
         return updated_task
 
-    def reorder_tasks(self, column_id, task_orders):
+    def reorder_tasks(self, column_id: int, task_orders: List[int]):
         self.task_repo.reorder_tasks(column_id, task_orders)
 
     def add_image_to_task(self, task_id: int, filename: str, file_path: str, file_size: int = None):
@@ -50,16 +50,9 @@ class TaskService:
         if not task:
             raise ValueError(f"Задача с id {task_id} не найдена")
 
-        image = self.image_repo.create_image(
-            filename=filename,
-            file_path=file_path,
-            task_id=task_id,
-            file_size=file_size
-        )
+        return self.image_repo.create_image(filename, file_path, task_id, file_size)
 
-        return image
-
-    def delete_task_image(self, image_id):
+    def delete_task_image(self, image_id: int):
         if not self.image_repo:
             raise ValueError("Image repository not initialized")
 
@@ -75,13 +68,13 @@ class TaskService:
 
         self.image_repo.delete(image)
 
-    def delete_task(self, task_id):
+    def delete_task(self, task_id: int):
         task = self.task_repo.get_with_images(task_id)
         if not task:
             raise ValueError(f"Задача с id {task_id} не найдена")
 
-        if self.image_repo and task.images:
-            for image in task.images:
+        if self.image_repo and task.task_images:
+            for image in task.task_images:
                 try:
                     if os.path.exists(image.file_path):
                         os.remove(image.file_path)
@@ -89,3 +82,15 @@ class TaskService:
                     logger.error(f"Failed to delete image file: {e}")
 
         self.task_repo.delete(task)
+
+    def update_task(self, task_id: int, title: str, description: str, column_id: int):
+        task = self.task_repo.get(task_id)
+        if not task:
+            raise ValueError(f"Задача с id {task_id} не найдена")
+
+        task.title = title
+        task.description = description
+        task.column_id = column_id
+        self.task_repo.db.commit()
+        self.task_repo.db.refresh(task)
+        return task

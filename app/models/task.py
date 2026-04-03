@@ -15,8 +15,9 @@ class Task(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    column = relationship("Column", back_populates="tasks")
-    images = relationship("TaskImage", back_populates="task", cascade="all, delete-orphan")
+    # Связи
+    task_column = relationship("Column", back_populates="column_tasks")
+    task_images = relationship("TaskImage", back_populates="image_task", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Task(id={self.id}, title={self.title})>"

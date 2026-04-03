@@ -15,8 +15,11 @@ class Board(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
-    owner = relationship("User", backref="boards")
-    columns = relationship("Column", back_populates="board", cascade="all, delete-orphan", order_by="Column.order")
+    board_owner = relationship("User", foreign_keys=[owner_id], back_populates="user_owned_boards")
+    board_columns = relationship("Column", back_populates="column_board", cascade="all, delete-orphan",
+                                 order_by="Column.order")
+    board_members = relationship("BoardMember", back_populates="member_board", cascade="all, delete-orphan")
+    board_invitations = relationship("Invitation", back_populates="invitation_board", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Board(id={self.id}, name={self.name})>"
