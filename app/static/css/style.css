@@ -12,7 +12,7 @@ body {
 }
 
 .navbar {
-    background: #2c3e50;
+    background: #40437e;
     color: white;
     padding: 1rem 0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -554,7 +554,6 @@ body {
     color: #333;
 }
 
-/* Пустое состояние */
 .empty-state {
     text-align: center;
     padding: 50px;
@@ -685,7 +684,7 @@ body {
 .modal-content.scrollable-modal {
     max-height: 80vh;
     overflow-y: auto;
-    padding-right: 25px; /* Место для скроллбара */
+    padding-right: 25px;
 }
 
 .modal-content.scrollable-modal::-webkit-scrollbar {
@@ -706,7 +705,6 @@ body {
     background: #555;
 }
 
-/* Стили для превью изображений */
 .image-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -747,7 +745,6 @@ body {
 }
 
 
-/* Улучшенные стили для Drag & Drop */
 .tasks-container {
     min-height: 200px;
     padding: 10px;
@@ -908,7 +905,6 @@ body {
     font-family: inherit;
 }
 
-/* Стили для изображений в карточках задач */
 .task-images-preview {
     display: flex;
     gap: 5px;
