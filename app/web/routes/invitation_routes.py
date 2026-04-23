@@ -11,6 +11,7 @@ from app.repositories.board_member_repository import BoardMemberRepository
 from app.services.board_service import BoardService
 from app.models.user import User
 from app.models.board_member import MemberRole
+from datetime import datetime
 
 router = APIRouter(prefix="/invitations", tags=["invitations"])
 templates = Jinja2Templates(directory="app/templates")
@@ -29,7 +30,10 @@ async def create_invitation(
     board = board_repo.get(board_id)
 
     if not board or board.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Только владелец доски может создавать приглашения")
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "error": "Только владелец доски может создавать приглашения"}
+        )
 
     inv_repo = InvitationRepository(db)
     invitation = inv_repo.create_invitation(
@@ -61,13 +65,11 @@ async def join_board(
     if not invitation:
         raise HTTPException(status_code=404, detail="Приглашение не найдено")
 
-    from datetime import datetime
     if invitation.expires_at and invitation.expires_at < datetime.utcnow():
         raise HTTPException(status_code=400, detail="Приглашение истекло")
 
     if invitation.used:
         raise HTTPException(status_code=400, detail="Приглашение уже использовано")
-
     member_repo = BoardMemberRepository(db)
     existing_member = member_repo.db.query(member_repo.model).filter(
         member_repo.model.board_id == invitation.board_id,
@@ -77,19 +79,19 @@ async def join_board(
     if existing_member:
         return RedirectResponse(url=f"/boards/{invitation.board_id}", status_code=303)
 
+    role_enum = MemberRole.EDITOR if invitation.role == "editor" else MemberRole.VIEWER
     member_repo.add_member(
         board_id=invitation.board_id,
         user_id=current_user.id,
-        role=MemberRole.EDITOR if invitation.role == "editor" else MemberRole.VIEWER,
+        role=role_enum,
         invited_by=invitation.invited_by
     )
-
     inv_repo.use_invitation(token)
 
     return RedirectResponse(url=f"/boards/{invitation.board_id}", status_code=303)
 
 
-@router.post("/{member_id}/remove")
+@router.post("/member/{member_id}/remove")
 async def remove_member(
         member_id: int,
         request: Request,
@@ -108,12 +110,15 @@ async def remove_member(
     if not board or board.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Только владелец доски может удалять участников")
 
+    if member.user_id == board.owner_id:
+        raise HTTPException(status_code=400, detail="Нельзя удалить владельца доски")
+
     member_repo.delete(member)
 
     return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
 
 
-@router.post("/{member_id}/update-role")
+@router.post("/member/{member_id}/update-role")
 async def update_member_role(
         member_id: int,
         role: str = Form(...),
@@ -131,6 +136,9 @@ async def update_member_role(
 
     if not board or board.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Только владелец доски может изменять роли")
+
+    if member.user_id == board.owner_id:
+        raise HTTPException(status_code=400, detail="Нельзя изменить роль владельца")
 
     role_enum = MemberRole.EDITOR if role == "editor" else MemberRole.VIEWER
     member_repo.update_role(member.board_id, member.user_id, role_enum)

@@ -11,21 +11,31 @@
 <div class="boards-grid">
     {% if boards %}
         {% for board in boards %}
+            {% set task_count = namespace(value=0) %}
+            {% for column in board.board_columns %}
+                {% for task in column.column_tasks %}
+                    {% set task_count.value = task_count.value + 1 %}
+                {% endfor %}
+            {% endfor %}
+
             <div class="board-card">
                 <h3>{{ board.name }}</h3>
                 {% if board.description %}
-                    <p class="board-description">{{ board.description }}</p>
+                    <p class="board-description">{{ board.description[:100] }}</p>
                 {% endif %}
                 <div class="board-stats">
-                    <span>Задач: {{ board.tasks|length }}</span>
+                    <span>Задач: {{ task_count.value }}</span>
+                    <span>Колонок: {{ board.board_columns|length }}</span>
                     <span>{{ board.created_at.strftime('%d.%m.%Y') }}</span>
                 </div>
                 <div class="board-actions">
                     <a href="/boards/{{ board.id }}" class="btn btn-view">Открыть</a>
-                    <a href="/boards/{{ board.id }}/edit" class="btn btn-secondary">✏️</a>
-                    <form action="/boards/{{ board.id }}/delete" method="post" style="display: inline;">
-                        <button type="submit" class="btn btn-delete" onclick="return confirm('Удалить доску?')">🗑️</button>
-                    </form>
+                    {% if board.owner_id == user.id %}
+                        <a href="/boards/{{ board.id }}/edit" class="btn btn-secondary">✏️</a>
+                        <form action="/boards/{{ board.id }}/delete" method="post" style="display: inline;" onsubmit="return confirm('Удалить доску? Все данные будут потеряны!')">
+                            <button type="submit" class="btn btn-delete">🗑️</button>
+                        </form>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}

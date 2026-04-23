@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import get_current_active_user
+from app.repositories.board_member_repository import BoardMemberRepository
 from app.repositories.task_repository import TaskRepository
 from app.repositories.task_image_repository import TaskImageRepository
 from app.repositories.column_repository import ColumnRepository
@@ -82,9 +83,8 @@ async def get_task_json(
         current_user: User = Depends(get_current_active_user)
 ):
     task_repo = TaskRepository(db)
-    task_service = TaskService(task_repo)
+    task = task_repo.get_with_images(task_id)
 
-    task = task_service.get_task_with_images(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
 
@@ -95,13 +95,24 @@ async def get_task_json(
 
     board_repo = BoardRepository(db)
     board = board_repo.get(column.board_id)
-    if not board or board.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    if not board:
+        raise HTTPException(status_code=404, detail="Доска не найдена")
+
+    if board.owner_id != current_user.id:
+        from app.repositories.board_member_repository import BoardMemberRepository
+        member_repo = BoardMemberRepository(db)
+        member = member_repo.db.query(member_repo.model).filter(
+            member_repo.model.board_id == board.id,
+            member_repo.model.user_id == current_user.id
+        ).first()
+
+        if not member:
+            raise HTTPException(status_code=403, detail="Доступ запрещен")
 
     return {
         "id": task.id,
         "title": task.title,
-        "description": task.description,
+        "description": task.description or "",
         "column_id": task.column_id,
         "images": [
             {
@@ -110,10 +121,9 @@ async def get_task_json(
                 "url": img.file_path,
                 "size": img.file_size
             }
-            for img in task.task_images  # Исправлено: task_images вместо images
+            for img in task.task_images
         ]
     }
-
 
 @router.post("/{task_id}/update")
 async def update_task(
@@ -310,28 +320,62 @@ async def delete_task_image(
     task_repo = TaskRepository(db)
     column_repo = ColumnRepository(db)
     board_repo = BoardRepository(db)
-    task_service = TaskService(task_repo, image_repo)
 
     image = image_repo.get(image_id)
     if not image:
-        raise HTTPException(status_code=404, detail="Изображение не найдено")
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": "Изображение не найдено"}
+        )
 
     task = task_repo.get(image.task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="Задача не найдена")
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": "Задача не найдена"}
+        )
 
     column = column_repo.get(task.column_id)
     if not column:
-        raise HTTPException(status_code=404, detail="Колонка не найдена")
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": "Колонка не найдена"}
+        )
 
     board = board_repo.get(column.board_id)
-    if not board or board.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    if not board:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": "Доска не найдена"}
+        )
 
-    task_service.delete_task_image(image_id)
+    if board.owner_id != current_user.id:
+        from app.repositories.board_member_repository import BoardMemberRepository
+        from app.models.board_member import MemberRole
 
-    return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
+        member_repo = BoardMemberRepository(db)
+        member = member_repo.db.query(member_repo.model).filter(
+            member_repo.model.board_id == board.id,
+            member_repo.model.user_id == current_user.id
+        ).first()
 
+        if not member or member.role == MemberRole.VIEWER:
+            return JSONResponse(
+                status_code=403,
+                content={"success": False, "error": "Доступ запрещен"}
+            )
+
+    try:
+        if os.path.exists(image.file_path):
+            os.remove(image.file_path)
+    except Exception as e:
+        print(f"Error deleting file: {e}")
+
+    image_repo.delete(image)
+    return JSONResponse(
+        status_code=200,
+        content={"success": True, "message": "Изображение удалено"}
+    )
 
 @router.post("/{task_id}/delete")
 async def delete_task(

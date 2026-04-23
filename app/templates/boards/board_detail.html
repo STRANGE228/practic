@@ -7,52 +7,83 @@
     <div>
         <h1>{{ board.name }}</h1>
         {% if board.description %}
-        <p class="board-description">{{ board.description }}</p>
+            <p class="board-description">{{ board.description }}</p>
         {% endif %}
     </div>
     <div class="board-header-actions">
-        <a href="/boards/{{ board.id }}/edit" class="btn btn-secondary">✏️ Редактировать доску</a>
-        <button class="btn btn-primary" onclick="openColumnModal()">➕ Добавить колонку</button>
+        {% if user_role == 'owner' %}
+            <a href="/boards/{{ board.id }}/edit" class="btn btn-secondary">✏️ Редактировать доску</a>
+        {% endif %}
+        {% if user_role == 'owner' or user_role == 'editor' %}
+            <button class="btn btn-primary" onclick="openColumnModal()">➕ Добавить колонку</button>
+        {% endif %}
     </div>
 </div>
 
-<div class="kanban-board" data-board-id="{{ board.id }}">
+<div class="kanban-board" data-board-id="{{ board.id }}" data-user-role="{{ user_role }}">
     {% for column_data in columns %}
-    <div class="column" data-column-id="{{ column_data.column.id }}">
-        <div class="column-header">
-            <div class="column-title">
-                <h2 ondblclick="editColumn(this, {{ column_data.column.id }})">{{ column_data.column.name }}</h2>
-                <span class="task-count">{{ column_data.tasks|length }}</span>
+        <div class="column" data-column-id="{{ column_data.column.id }}">
+            <div class="column-header">
+                <div class="column-title">
+                    <h2 ondblclick="{% if user_role == 'owner' or user_role == 'editor' %}editColumn(this, {{ column_data.column.id }}){% endif %}">
+                        {{ column_data.column.name }}
+                    </h2>
+                    <span class="task-count">{{ column_data.tasks|length }}</span>
+                </div>
+                <div class="column-actions">
+                    {% if user_role == 'owner' or user_role == 'editor' %}
+                        <button class="btn-icon" onclick="openEditColumnModal({{ column_data.column.id }}, '{{ column_data.column.name }}')" title="Редактировать">✏️</button>
+                        <form action="/columns/{{ column_data.column.id }}/delete" method="post" style="display: inline;" onsubmit="return confirm('Удалить колонку? Все задачи будут удалены!')">
+                            <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+                        </form>
+                        <button class="btn-icon" onclick="openTaskModal({{ column_data.column.id }})" title="Добавить задачу">➕</button>
+                    {% endif %}
+                </div>
             </div>
-            <div class="column-actions">
-                <button class="btn-icon"
-                        onclick="openEditColumnModal({{ column_data.column.id }}, '{{ column_data.column.name }}')"
-                        title="Редактировать">✏️
-                </button>
-                <form action="/columns/{{ column_data.column.id }}/delete" method="post" style="display: inline;"
-                      onsubmit="return confirm('Удалить колонку? Все задачи будут удалены!')">
-                    <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
-                </form>
-                <button class="btn-icon" onclick="openTaskModal({{ column_data.column.id }})" title="Добавить задачу">
-                    ➕
-                </button>
+            <div class="tasks-container" id="column-{{ column_data.column.id }}" data-column-id="{{ column_data.column.id }}">
+                {% for task in column_data.tasks|sort(attribute='order') %}
+                    {% include "boards/task_card.html" %}
+                {% endfor %}
             </div>
         </div>
-        <div class="tasks-container" id="column-{{ column_data.column.id }}"
-             data-column-id="{{ column_data.column.id }}">
-            {% for task in column_data.tasks|sort(attribute='order') %}
-            {% include "boards/task_card.html" %}
-            {% endfor %}
-        </div>
-    </div>
     {% else %}
-    <div class="empty-board">
-        <p>На этой доске пока нет колонок</p>
-        <button class="btn btn-primary" onclick="openColumnModal()">Создать первую колонку</button>
-    </div>
+        <div class="empty-board">
+            <p>На этой доске пока нет колонок</p>
+            {% if user_role == 'owner' or user_role == 'editor' %}
+                <button class="btn btn-primary" onclick="openColumnModal()">Создать первую колонку</button>
+            {% endif %}
+        </div>
     {% endfor %}
 </div>
 
+<div class="board-members-section">
+    <div class="members-header">
+        <h3>Участники доски</h3>
+        <button class="btn btn-secondary" onclick="openInviteModal()">
+            🔗 Пригласить
+        </button>
+    </div>
+    <div class="members-list">
+        {% for member in members %}
+            <div class="member-item">
+                <div class="member-info">
+                    <strong>{{ member.username }}</strong>
+                    <span class="member-email">{{ member.email }}</span>
+                    <span class="member-role {{ member.role }}">{{ member.role }}</span>
+                </div>
+                {% if user_role == 'owner' and member.id != user.id %}
+                    <div class="member-actions">
+                        <form action="/invitations/member/{{ member.id }}/remove" method="post" style="display: inline;" onsubmit="return confirm('Удалить участника?')">
+                            <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if user_role == 'owner' or user_role == 'editor' %}
 <!-- Модальное окно для создания колонки -->
 <div id="columnModal" class="modal">
     <div class="modal-content scrollable-modal">
@@ -63,8 +94,7 @@
 
             <div class="form-group">
                 <label for="column_name">Название колонки</label>
-                <input type="text" id="column_name" name="name" required
-                       placeholder="Например: В работе, Готово, Бэклог">
+                <input type="text" id="column_name" name="name" required placeholder="Например: В работе, Готово, Бэклог">
             </div>
 
             <div class="form-actions">
@@ -111,20 +141,17 @@
 
             <div class="form-group">
                 <label for="task_description">Описание (необязательно)</label>
-                <textarea id="task_description" name="description" rows="3"
-                          placeholder="Подробности задачи..."></textarea>
+                <textarea id="task_description" name="description" rows="3" placeholder="Подробности задачи..."></textarea>
             </div>
 
             <div class="form-group">
                 <label>Изображения</label>
                 <div class="image-upload-area">
-                    <button type="button" class="btn btn-secondary"
-                            onclick="document.getElementById('task_file_input').click()">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('task_file_input').click()">
                         📁 Выбрать изображения
                     </button>
-                    <input type="file" id="task_file_input" multiple accept="image/*" style="display: none;"
-                           onchange="handleTaskFilesSelect(this)">
-                    <p class="form-text">Можно выбрать несколько изображений. Поддерживаются JPG, PNG, GIF.</p>
+                    <input type="file" id="task_file_input" multiple accept="image/*" style="display: none;" onchange="handleTaskFilesSelect(this)">
+                    <p class="form-text">Можно выбрать несколько изображений.</p>
                 </div>
             </div>
 
@@ -138,7 +165,40 @@
     </div>
 </div>
 
-<!-- Модальное окно для редактирования задачи -->
+<!-- Модальное окно для приглашений (только для владельца) -->
+{% if user_role == 'owner' %}
+<div id="inviteModal" class="modal">
+    <div class="modal-content scrollable-modal">
+        <span class="close" onclick="closeInviteModal()">&times;</span>
+        <h2>Пригласить участника</h2>
+
+        <div class="form-group">
+            <label>Роль нового участника</label>
+            <select id="invite_role">
+                <option value="viewer">Наблюдатель (только просмотр)</option>
+                <option value="editor">Редактор (может создавать и редактировать)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Пригласительная ссылка</label>
+            <div class="invite-link-container">
+                <input type="text" id="invite_link" readonly class="invite-link-input">
+                <button class="btn btn-secondary" onclick="copyInviteLink()">Копировать</button>
+            </div>
+            <p class="form-text">Отправьте эту ссылку коллеге. Ссылка действительна 7 дней.</p>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn btn-primary" onclick="createInvitation()">Создать ссылку</button>
+            <button type="button" class="btn btn-secondary" onclick="closeInviteModal()">Закрыть</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Модальное окно для редактирования задачи (доступно всем) -->
 <div id="editTaskModal" class="modal">
     <div class="modal-content scrollable-modal">
         <span class="close" onclick="closeEditTaskModal()">&times;</span>
@@ -161,7 +221,7 @@
                 <label for="edit_column">Колонка</label>
                 <select id="edit_column" name="column_id">
                     {% for column_data in columns %}
-                    <option value="{{ column_data.column.id }}">{{ column_data.column.name }}</option>
+                        <option value="{{ column_data.column.id }}">{{ column_data.column.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -171,20 +231,20 @@
                 <div id="current-images" class="image-grid"></div>
             </div>
 
+            {% if user_role == 'owner' or user_role == 'editor' %}
             <div class="form-group">
                 <label>Добавить новые изображения</label>
                 <div class="image-upload-area">
-                    <button type="button" class="btn btn-secondary"
-                            onclick="document.getElementById('edit_file_input').click()">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit_file_input').click()">
                         📁 Выбрать изображения
                     </button>
-                    <input type="file" id="edit_file_input" multiple accept="image/*" style="display: none;"
-                           onchange="handleEditFilesSelect(this)">
+                    <input type="file" id="edit_file_input" multiple accept="image/*" style="display: none;" onchange="handleEditFilesSelect(this)">
                     <p class="form-text">Можно выбрать несколько изображений</p>
                 </div>
             </div>
 
             <div id="edit-images-preview" class="image-grid"></div>
+            {% endif %}
 
             <div class="form-actions">
                 <button type="button" class="btn btn-primary" onclick="submitEditForm()">Сохранить</button>
@@ -201,97 +261,53 @@
         <img id="fullsize-image" src="" alt="Full size image">
     </div>
 </div>
-
-<!-- Секция участников и приглашений -->
-<div class="board-members-section">
-    <div class="members-header">
-        <h3>Участники доски</h3>
-        {% if user_role == 'owner' or user_role == 'editor' %}
-        <button class="btn btn-secondary" onclick="openInviteModal()">
-            🔗 Пригласить
-        </button>
-        {% endif %}
-    </div>
-    <div class="members-list">
-        {% for member in members %}
-        <div class="member-item">
-            <div class="member-info">
-                <strong>{{ member.username }}</strong>
-                <span class="member-email">{{ member.email }}</span>
-                <span class="member-role {{ member.role }}">{{ member.role }}</span>
-            </div>
-            {% if user_role == 'owner' and member.id != user.id %}
-            <div class="member-actions">
-                <form action="/members/{{ member.id }}/remove" method="post" style="display: inline;"
-                      onsubmit="return confirm('Удалить участника?')">
-                    <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
-                </form>
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Модальное окно для приглашения -->
-<div id="inviteModal" class="modal">
-    <div class="modal-content scrollable-modal">
-        <span class="close" onclick="closeInviteModal()">&times;</span>
-        <h2>Пригласить участника</h2>
-
-        <div class="form-group">
-            <label>Роль нового участника</label>
-            <select id="invite_role">
-                <option value="viewer">Наблюдатель (только просмотр)</option>
-                <option value="editor">Редактор (может создавать и редактировать)</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Пригласительная ссылка</label>
-            <div class="invite-link-container">
-                <input type="text" id="invite_link" readonly class="invite-link-input">
-                <button class="btn btn-secondary" onclick="copyInviteLink()">📋 Копировать</button>
-            </div>
-            <p class="form-text">Отправьте эту ссылку коллеге. Ссылка действительна 7 дней.</p>
-        </div>
-
-        <div class="form-actions">
-            <button type="button" class="btn btn-primary" onclick="createInvitation()">Создать ссылку</button>
-            <button type="button" class="btn btn-secondary" onclick="closeInviteModal()">Закрыть</button>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    // ========== Глобальные переменные ==========
+    const boardContainer = document.querySelector('.kanban-board');
+    const userRole = boardContainer ? boardContainer.dataset.userRole : 'viewer';
     let selectedTaskFiles = [];
     let selectedEditFiles = [];
     let currentTaskImages = [];
 
     // ========== Функции для работы с колонками ==========
     function openColumnModal() {
-        document.getElementById('columnModal').style.display = 'block';
+    const modal = document.getElementById('columnModal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        console.error('Column modal not found');
     }
+}
 
-    function closeColumnModal() {
-        document.getElementById('columnModal').style.display = 'none';
+function closeColumnModal() {
+    const modal = document.getElementById('columnModal');
+    if (modal) {
+        modal.style.display = 'none';
     }
+}
 
     function openEditColumnModal(columnId, columnName) {
+    const modal = document.getElementById('editColumnModal');
+    if (modal) {
         document.getElementById('edit_column_id').value = columnId;
         document.getElementById('edit_column_name').value = columnName;
         document.getElementById('editColumnForm').action = `/columns/${columnId}/update`;
-        document.getElementById('editColumnModal').style.display = 'block';
+        modal.style.display = 'block';
     }
+}
 
-    function closeEditColumnModal() {
-        document.getElementById('editColumnModal').style.display = 'none';
+function closeEditColumnModal() {
+    const modal = document.getElementById('editColumnModal');
+    if (modal) {
+        modal.style.display = 'none';
     }
+}
 
     function editColumn(element, columnId) {
+        if (userRole !== 'owner' && userRole !== 'editor') return;
+
         const currentName = element.innerText;
         const input = document.createElement('input');
         input.type = 'text';
@@ -302,7 +318,7 @@
         element.appendChild(input);
         input.focus();
 
-        input.onblur = function () {
+        input.onblur = function() {
             const newName = this.value.trim();
             if (newName && newName !== currentName) {
                 const form = document.createElement('form');
@@ -325,20 +341,26 @@
 
     // ========== Функции для работы с задачами ==========
     function openTaskModal(columnId) {
-        document.getElementById('task_column_id').value = columnId;
-        document.getElementById('taskModal').style.display = 'block';
-        // Очищаем предыдущие файлы
-        selectedTaskFiles = [];
-        updateTaskPreview();
-    }
+        if (userRole !== 'owner' && userRole !== 'editor') return;
 
-    function closeTaskModal() {
-        document.getElementById('taskModal').style.display = 'none';
-        document.getElementById('task_title').value = '';
-        document.getElementById('task_description').value = '';
-        document.getElementById('task_file_input').value = '';
-        selectedTaskFiles = [];
-        updateTaskPreview();
+        const modal = document.getElementById('taskModal');
+        if (modal) {
+            document.getElementById('task_column_id').value = columnId;
+            modal.style.display = 'block';
+            selectedTaskFiles = [];
+            updateTaskPreview();
+        }
+}
+
+function closeTaskModal() {
+        const modal = document.getElementById('taskModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.getElementById('task_title').value = '';
+            document.getElementById('task_description').value = '';
+            selectedTaskFiles = [];
+            updateTaskPreview();
+        }
     }
 
     async function openEditTaskModal(taskId) {
@@ -347,30 +369,32 @@
             const task = await response.json();
 
             document.getElementById('edit_task_id').value = task.id;
-            document.getElementById('edit_title').value = task.title;
-            document.getElementById('edit_description').value = task.description;
+            document.getElementById('edit_title').value = task.title || '';
+            document.getElementById('edit_description').value = task.description || '';
             document.getElementById('edit_column').value = task.column_id;
 
-            // Сохраняем текущие изображения
-            currentTaskImages = task.images || [];
-
-            // Сбрасываем новые файлы
+            // Сбрасываем превью
+            if (document.getElementById('edit-images-preview')) {
+                document.getElementById('edit-images-preview').innerHTML = '';
+            }
+            if (document.getElementById('edit_file_input')) {
+                document.getElementById('edit_file_input').value = '';
+            }
             selectedEditFiles = [];
-            document.getElementById('edit_file_input').value = '';
-            updateEditPreview();
 
             // Отображаем текущие изображения
             const imagesContainer = document.getElementById('current-images');
             imagesContainer.innerHTML = '';
 
-            if (currentTaskImages.length > 0) {
-                currentTaskImages.forEach(img => {
+            if (task.images && task.images.length > 0) {
+                task.images.forEach(img => {
                     const imgDiv = document.createElement('div');
                     imgDiv.className = 'image-preview-item';
                     imgDiv.innerHTML = `
                         <img src="${img.url}" alt="${img.filename}" onclick="viewImage('${img.url}')" style="cursor: pointer;">
                         <div class="preview-filename" title="${img.filename}">${truncateFilename(img.filename)}</div>
-                        <button type="button" class="remove-preview" onclick="deleteImage(${img.id})" title="Удалить">✕</button>
+                        ${userRole === 'owner' || userRole === 'editor' ?
+                            `<button type="button" class="remove-preview" onclick="deleteImage(${img.id})" title="Удалить">✕</button>` : ''}
                     `;
                     imagesContainer.appendChild(imgDiv);
                 });
@@ -378,7 +402,8 @@
                 imagesContainer.innerHTML = '<p class="no-images">Нет изображений</p>';
             }
 
-            document.getElementById('editTaskModal').style.display = 'block';
+            const modal = document.getElementById('editTaskModal');
+            if (modal) modal.style.display = 'block';
         } catch (error) {
             console.error('Error loading task:', error);
             alert('Ошибка при загрузке задачи');
@@ -525,25 +550,52 @@
     }
 
     // ========== Функции для работы с изображениями ==========
-    async function deleteImage(imageId) {
-        if (!confirm('Удалить изображение?')) return;
-
-        try {
-            const formData = new FormData();
-            formData.append('image_id', imageId);
-
-            const response = await fetch(`/tasks/image/${imageId}/delete`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.redirected) {
-                window.location.reload();
-            }
-        } catch (error) {
-            console.error('Error deleting image:', error);
-        }
+    async function deleteImage(imageId, event) {
+    if (event) {
+        event.stopPropagation();
     }
+
+    if (userRole !== 'owner' && userRole !== 'editor') {
+        showNotification('У вас нет прав на удаление изображений');
+        return;
+    }
+
+    if (!confirm('Удалить изображение?')) return;
+
+    try {
+        const response = await fetch(`/tasks/image/${imageId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            const imageItems = document.querySelectorAll('.image-preview-item');
+            for (let item of imageItems) {
+                const deleteBtn = item.querySelector(`[onclick*="deleteImage(${imageId}"]`);
+                if (deleteBtn) {
+                    item.remove();
+                    break;
+                }
+            }
+
+            const imagesContainer = document.getElementById('current-images');
+            if (imagesContainer && imagesContainer.children.length === 0) {
+                imagesContainer.innerHTML = '<p class="no-images">Нет изображений</p>';
+            }
+
+            showNotification('Изображение удалено');
+        } else {
+            showNotification('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Ошибка при удалении изображения');
+    }
+}
 
     function viewImage(imageUrl) {
         document.getElementById('fullsize-image').src = imageUrl;
@@ -587,14 +639,23 @@
 
     // ========== Функции для приглашений ==========
     function openInviteModal() {
-        document.getElementById('inviteModal').style.display = 'block';
-    }
+        if (userRole !== 'owner') return;
+        const modal = document.getElementById('inviteModal');
+        if (modal) modal.style.display = 'block';
 
-    function closeInviteModal() {
-        document.getElementById('inviteModal').style.display = 'none';
-    }
+}
 
-    async function createInvitation() {
+function closeInviteModal() {
+    const modal = document.getElementById('inviteModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.getElementById('invite_link').value = '';
+    }
+}
+
+async function createInvitation() {
+        if (userRole !== 'owner') return;
+
         const boardId = document.querySelector('.kanban-board').dataset.boardId;
         const role = document.getElementById('invite_role').value;
 
@@ -623,174 +684,45 @@
     }
 
     function copyInviteLink() {
-        const linkInput = document.getElementById('invite_link');
+    const linkInput = document.getElementById('invite_link');
+    if (linkInput && linkInput.value) {
         linkInput.select();
         document.execCommand('copy');
         showNotification('Ссылка скопирована!');
     }
+}
 
+function ensureMembersSection() {
+    const boardContent = document.querySelector('.kanban-board');
+    if (!boardContent) return;
 
-    //WebSocket для синхронизации
-    let ws = null;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
+    const existingSection = document.querySelector('.board-members-section');
+    if (existingSection) return;
 
-    function connectWebSocket() {
-        const boardId = document.querySelector('.kanban-board').dataset.boardId;
-        const token = document.cookie.split('; ').find(row => row.startsWith('access_token='));
-        const tokenValue = token ? token.split('=')[1].replace('Bearer ', '') : '';
-
-        if (!tokenValue) {
-            console.log('No token found');
-            return;
-        }
-
-        const wsUrl = `ws://${window.location.host}/ws/${boardId}/${tokenValue}`;
-        ws = new WebSocket(wsUrl);
-
-        ws.onopen = function () {
-            console.log('WebSocket connected');
-            reconnectAttempts = 0;
-
-            // Отправляем ping каждые 30 секунд для поддержания соединения
-            setInterval(() => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({type: 'ping'}));
-                }
-            }, 30000);
-        };
-
-        ws.onmessage = function (event) {
-            const data = JSON.parse(event.data);
-            console.log('WebSocket message:', data);
-
-            switch (data.type) {
-                case 'task_updated':
-                    updateTaskInUI(data.task);
-                    break;
-                case 'task_deleted':
-                    removeTaskFromUI(data.task_id);
-                    break;
-                case 'column_updated':
-                    updateColumnInUI(data.column);
-                    break;
-                case 'user_connected':
-                    showNotification(`Пользователь ${data.user_id} присоединился`);
-                    break;
-                case 'user_disconnected':
-                    showNotification(`Пользователь ${data.user_id} покинул доску`);
-                    break;
-            }
-        };
-
-        ws.onclose = function () {
-            console.log('WebSocket disconnected');
-            if (reconnectAttempts < maxReconnectAttempts) {
-                reconnectAttempts++;
-                setTimeout(connectWebSocket, 2000 * reconnectAttempts);
-            }
-        };
-
-        ws.onerror = function (error) {
-            console.error('WebSocket error:', error);
-        };
-    }
-
-    function updateTaskInUI(taskData) {
-        const taskElement = document.getElementById(`task-${taskData.id}`);
-        if (taskElement) {
-            taskElement.querySelector('h4').textContent = taskData.title;
-            const descElement = taskElement.querySelector('.task-description');
-            if (descElement) {
-                if (taskData.description) {
-                    descElement.textContent = taskData.description.length > 100 ?
-                        taskData.description.substring(0, 100) + '...' :
-                        taskData.description;
-                } else {
-                    descElement.remove();
-                }
-            }
-
-            const dateElement = taskElement.querySelector('.task-date');
-            if (dateElement && taskData.updated_at) {
-                dateElement.textContent = new Date(taskData.updated_at).toLocaleString();
-            }
-        } else {
-            location.reload();
-        }
-    }
-
-    function removeTaskFromUI(taskId) {
-        const taskElement = document.getElementById(`task-${taskId}`);
-        if (taskElement) {
-            taskElement.remove();
-            updateTasksCounters();
-        }
-    }
-
-    function updateColumnInUI(columnData) {
-        const columnElement = document.querySelector(`.column[data-column-id="${columnData.id}"]`);
-        if (columnElement) {
-            const titleElement = columnElement.querySelector('.column-title h2');
-            if (titleElement) {
-                titleElement.textContent = columnData.name;
-            }
-        }
-    }
-
-    function showNotification(message) {
-        const notification = document.createElement('div');
-        notification.className = 'notification';
-        notification.textContent = message;
-        notification.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: #2c3e50;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 9999;
-        animation: slideIn 0.3s ease-out;
+    const membersSection = document.createElement('div');
+    membersSection.className = 'board-members-section';
+    membersSection.innerHTML = `
+        <div class="members-header">
+            <h3>Участники доски</h3>
+            <button class="btn btn-secondary" onclick="openInviteModal()">
+                🔗 Пригласить
+            </button>
+        </div>
+        <div class="members-list" id="members-list">
+        </div>
     `;
 
-        document.body.appendChild(notification);
-
-        setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease-out';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+    const boardHeader = document.querySelector('.board-header');
+    if (boardHeader) {
+        boardHeader.insertAdjacentElement('afterend', membersSection);
     }
+}
 
-    const notificationStyle = document.createElement('style');
-    notificationStyle.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
 
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-    document.head.appendChild(notificationStyle);
-
-    // Подключаем WebSocket при загрузке страницы
     document.addEventListener('DOMContentLoaded', function () {
+        ensureMembersSection();
         connectWebSocket();
+
     });
 </script>
 {% endblock %}

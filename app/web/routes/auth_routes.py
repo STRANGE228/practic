@@ -7,8 +7,8 @@ from app.repositories.user_repository import UserRepository
 from app.services.user_service import UserService
 from app.core.auth import get_current_user
 
-templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/auth", tags=["auth"])
+templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/login")
@@ -21,10 +21,7 @@ async def login_page(
 
     return templates.TemplateResponse(
         "auth/login.html",
-        {
-            "request": request,
-            "user": current_user
-        }
+        {"request": request}
     )
 
 
@@ -75,10 +72,7 @@ async def register_page(
 
     return templates.TemplateResponse(
         "auth/register.html",
-        {
-            "request": request,
-            "user": current_user
-        }
+        {"request": request}
     )
 
 
