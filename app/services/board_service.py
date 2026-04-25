@@ -16,6 +16,7 @@ class BoardService:
         self.member_repo = member_repo
 
     def create_board(self, name: str, description: str, owner_id: int):
+        # создает новую доску
         if not name or not name.strip():
             raise ValueError("Название доски не может быть пустым")
 
@@ -25,7 +26,8 @@ class BoardService:
             owner_id=owner_id
         )
 
-    def get_user_accessible_boards(self, user_id: int) -> List[Board]:
+    def get_user_accessible_boards(self, user_id: int):
+        # все доски доступные пользователю
         owned_boards = self.board_repo.get_user_boards(user_id)
 
         member_boards = []
@@ -41,7 +43,8 @@ class BoardService:
 
         return list(all_boards.values())
 
-    def get_board_with_details(self, board_id: int, user_id: int) -> Dict[str, Any]:
+    def get_board_with_details(self, board_id: int, user_id: int):
+        # возвращает всю доску с колонками и задачами
         board = self.board_repo.get(board_id)
         if not board:
             return None
@@ -99,7 +102,8 @@ class BoardService:
             "user_role": self._get_user_role(board, user_id)
         }
 
-    def _get_user_role(self, board, user_id: int) -> str:
+    def _get_user_role(self, board, user_id: int):
+        # роль участника доски
         if board.owner_id == user_id:
             return "owner"
 
@@ -114,7 +118,8 @@ class BoardService:
 
         return None
 
-    def add_member(self, board_id: int, user_id: int, invited_by: int, role: str = "viewer") -> Dict[str, Any]:
+    def add_member(self, board_id: int, user_id: int, invited_by: int, role: str = "viewer"):
+        # добавление учасника к доске
         if not self.member_repo:
             raise ValueError("Member repository not initialized")
 
@@ -139,20 +144,23 @@ class BoardService:
             }
         }
 
-    def remove_member(self, board_id: int, user_id: int) -> bool:
+    def remove_member(self, board_id: int, user_id: int):
+        # удалить пользователя с доски
         if not self.member_repo:
             return False
 
         return self.member_repo.remove_member(board_id, user_id)
 
-    def update_board(self, board_id: int, name: str, description: str) -> Board:
+    def update_board(self, board_id: int, name: str, description: str):
+        # обновление названия и описание доски
         board = self.board_repo.get(board_id)
         if not board:
             raise ValueError(f"Доска с id {board_id} не найдена")
 
         return self.board_repo.update(board, name=name, description=description)
 
-    def delete_board(self, board_id: int) -> bool:
+    def delete_board(self, board_id: int):
+        # удаление доски
         board = self.board_repo.get(board_id)
         if not board:
             return False

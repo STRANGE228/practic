@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 async def get_token_from_cookie(request):
-    """Получение токена из cookie"""
+    # Получение токена из cookie
     token = request.cookies.get("access_token")
     if token:
         logger.debug(f"Found token in cookie: {token[:20]}...")
@@ -25,7 +25,7 @@ async def get_current_user(
         request: Request,
         db: Session = Depends(get_db)
 ):
-    """Получение текущего пользователя по токену из cookie"""
+    # Получение текущего пользователя по токену из cookie
     token = await get_token_from_cookie(request)
 
     if not token:
@@ -61,6 +61,7 @@ async def get_current_user(
 async def get_current_active_user(
         current_user=Depends(get_current_user)
 ):
+    # Проверяет, активен ли пользователь
     if current_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,6 +76,7 @@ async def get_current_active_user(
 
 
 async def get_current_user_ws(token, db):
+    # Аутентифицирует пользователя для WebSocket соединения
     if not token:
         return None
 

@@ -12,6 +12,7 @@ class InvitationRepository(BaseRepository[Invitation]):
 
     def create_invitation(self, board_id, invited_by, role = "viewer", email = None,
                           expires_in_hours = 168):
+        # создать пригласительную ссылку
         expires_at = datetime.utcnow() + timedelta(hours=expires_in_hours)
 
         return self.create(
@@ -24,9 +25,11 @@ class InvitationRepository(BaseRepository[Invitation]):
         )
 
     def get_by_token(self, token):
+        # находит приглашение по токену
         return self.db.query(Invitation).filter(Invitation.token == token).first()
 
     def use_invitation(self, token):
+        # отмечает приглашение как использованное
         invitation = self.get_by_token(token)
         if invitation:
             invitation.used = True

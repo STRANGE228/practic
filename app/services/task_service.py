@@ -2,6 +2,7 @@ from app.repositories.task_repository import TaskRepository
 from app.repositories.task_image_repository import TaskImageRepository
 from typing import List, Optional
 import os
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,7 +13,8 @@ class TaskService:
         self.task_repo = task_repo
         self.image_repo = image_repo
 
-    def create_task(self, title: str, description: str, column_id: int):
+    def create_task(self, title: str, description: str, column_id: int, due_date = None):
+        # Создание новой задачи
         if not title or not title.strip():
             raise ValueError("Название задачи не может быть пустым")
 
@@ -22,7 +24,8 @@ class TaskService:
         return self.task_repo.create_task(
             title=title.strip(),
             description=description.strip(),
-            column_id=column_id
+            column_id=column_id,
+            due_date=due_date
         )
 
     def get_task_with_images(self, task_id: int):

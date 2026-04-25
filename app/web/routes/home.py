@@ -12,6 +12,7 @@ async def home_page(
         request: Request,
         current_user=Depends(get_current_user)
 ):
+    # главная страница
     return templates.TemplateResponse(
         "home.html",
         {
@@ -26,6 +27,7 @@ async def my_boards_redirect(
         request: Request,
         current_user=Depends(get_current_user)
 ):
+    # перенаправление на страницу досок
     if not current_user:
         return RedirectResponse(url="/auth/login", status_code=303)
 

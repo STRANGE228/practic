@@ -16,6 +16,7 @@ async def login_page(
         request: Request,
         current_user=Depends(get_current_user)
 ):
+    # страница входа
     if current_user:
         return RedirectResponse(url="/my-boards", status_code=303)
 
@@ -32,6 +33,7 @@ async def login(
         password: str = Form(...),
         db: Session = Depends(get_db)
 ):
+    # обработка входа
     user_repo = UserRepository(db)
     user_service = UserService(user_repo)
 
@@ -67,6 +69,7 @@ async def register_page(
         request: Request,
         current_user=Depends(get_current_user)
 ):
+    # страница регистрации
     if current_user:
         return RedirectResponse(url="/my-boards", status_code=303)
 
@@ -85,6 +88,7 @@ async def register(
         confirm_password: str = Form(...),
         db: Session = Depends(get_db)
 ):
+    # обработка регистрации
     if password != confirm_password:
         return templates.TemplateResponse(
             "auth/register.html",

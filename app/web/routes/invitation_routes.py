@@ -26,6 +26,7 @@ async def create_invitation(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # создать приглашение
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 
@@ -59,6 +60,7 @@ async def join_board(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # присоединение к доске
     inv_repo = InvitationRepository(db)
     invitation = inv_repo.get_by_token(token)
 
@@ -98,6 +100,7 @@ async def remove_member(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # кик с доски
     member_repo = BoardMemberRepository(db)
     member = member_repo.get(member_id)
 
@@ -125,6 +128,7 @@ async def update_member_role(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # обновить роль пользователя на доске
     member_repo = BoardMemberRepository(db)
     member = member_repo.get(member_id)
 

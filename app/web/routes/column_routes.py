@@ -15,6 +15,7 @@ router = APIRouter(prefix="/columns", tags=["columns"])
 
 
 def check_column_access(column_id: int, user_id: int, db: Session, require_edit: bool = False):
+    # проверка доступа к колонке
     column_repo = ColumnRepository(db)
     column = column_repo.get(column_id)
 
@@ -52,6 +53,7 @@ async def create_column(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # создание колонки
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 
@@ -80,6 +82,7 @@ async def update_column(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # редактирование колонки
     column, access = check_column_access(column_id, current_user.id, db, require_edit=True)
 
     if not column:
@@ -98,6 +101,7 @@ async def delete_column(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # удалить колонку
     column, access = check_column_access(column_id, current_user.id, db, require_edit=True)
 
     if not column:

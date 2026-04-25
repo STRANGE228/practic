@@ -1,22 +1,35 @@
 from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
+
 
 class TaskBase(BaseModel):
     title: str
-    description: str | None = None
-    status: str = "todo"
+    description: Optional[str] = ""
+    due_date: Optional[datetime] = None
+
 
 class TaskCreate(TaskBase):
-    board_id: int
+    column_id: int
+
 
 class TaskUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    status: str | None = None
-    board_id: int | None = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    column_id: Optional[int] = None
+    due_date: Optional[datetime] = None
+    is_completed: Optional[bool] = None
 
-class Task(TaskBase):
+
+class TaskResponse(TaskBase):
     id: int
-    board_id: int
+    column_id: int
+    order: int
+    is_completed: bool
+    created_at: datetime
+    updated_at: datetime
+    status_display: str
+    is_overdue: bool
 
     class Config:
         from_attributes = True

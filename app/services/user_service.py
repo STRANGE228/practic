@@ -13,6 +13,7 @@ class UserService:
         self.user_repo = user_repo
 
     def register_user(self, email, username, password):
+        # регистрация пользователя
         try:
             if self.user_repo.get_by_email(email):
                 raise HTTPException(
@@ -41,6 +42,7 @@ class UserService:
             )
 
     def authenticate_user(self, email, password):
+        # аутентификация пользователя
         try:
             user = self.user_repo.get_by_email(email)
 
@@ -57,6 +59,7 @@ class UserService:
             return None
 
     def create_user_token(self, user_id):
+        # создает токен для авторизации пользователя
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": str(user_id)},

@@ -145,13 +145,18 @@
             </div>
 
             <div class="form-group">
+                <label for="task_due_date">Срок выполнения (необязательно)</label>
+                <input type="datetime-local" id="task_due_date" name="due_date">
+            </div>
+
+            <div class="form-group">
                 <label>Изображения</label>
                 <div class="image-upload-area">
                     <button type="button" class="btn btn-secondary" onclick="document.getElementById('task_file_input').click()">
                         📁 Выбрать изображения
                     </button>
                     <input type="file" id="task_file_input" multiple accept="image/*" style="display: none;" onchange="handleTaskFilesSelect(this)">
-                    <p class="form-text">Можно выбрать несколько изображений.</p>
+                    <p class="form-text">Можно выбрать несколько изображений. Поддерживаются JPG, PNG, GIF.</p>
                 </div>
             </div>
 
@@ -164,6 +169,8 @@
         </form>
     </div>
 </div>
+
+
 
 <!-- Модальное окно для приглашений (только для владельца) -->
 {% if user_role == 'owner' %}
@@ -198,7 +205,7 @@
 {% endif %}
 {% endif %}
 
-<!-- Модальное окно для редактирования задачи (доступно всем) -->
+<!-- Модальное окно для редактирования задачи -->
 <div id="editTaskModal" class="modal">
     <div class="modal-content scrollable-modal">
         <span class="close" onclick="closeEditTaskModal()">&times;</span>
@@ -227,11 +234,15 @@
             </div>
 
             <div class="form-group">
-                <label>Текущие изображения</label>
-                <div id="current-images" class="image-grid"></div>
+                <label for="edit_due_date">Срок выполнения</label>
+                <input type="datetime-local" id="edit_due_date" name="due_date">
             </div>
 
-            {% if user_role == 'owner' or user_role == 'editor' %}
+            <div class="form-group">
+                <label>Текущие изображения</label>
+                <div id="current-images" class="image-grid" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+            </div>
+
             <div class="form-group">
                 <label>Добавить новые изображения</label>
                 <div class="image-upload-area">
@@ -243,8 +254,7 @@
                 </div>
             </div>
 
-            <div id="edit-images-preview" class="image-grid"></div>
-            {% endif %}
+            <div id="edit-images-preview" class="image-grid" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
 
             <div class="form-actions">
                 <button type="button" class="btn btn-primary" onclick="submitEditForm()">Сохранить</button>
@@ -368,10 +378,25 @@ function closeTaskModal() {
             const response = await fetch(`/tasks/${taskId}`);
             const task = await response.json();
 
-            document.getElementById('edit_task_id').value = task.id;
-            document.getElementById('edit_title').value = task.title || '';
-            document.getElementById('edit_description').value = task.description || '';
-            document.getElementById('edit_column').value = task.column_id;
+            // Заполняем поля формы
+        document.getElementById('edit_task_id').value = task.id;
+        document.getElementById('edit_title').value = task.title || '';
+        document.getElementById('edit_description').value = task.description || '';
+        document.getElementById('edit_column').value = task.column_id;
+
+        // Заполняем дату, если она есть
+        const dueDateInput = document.getElementById('edit_due_date');
+        if (dueDateInput) {
+            if (task.due_date) {
+                // Форматируем дату для input datetime-local
+                const dueDate = new Date(task.due_date);
+                const formattedDate = dueDate.toISOString().slice(0, 16);
+                dueDateInput.value = formattedDate;
+                console.log('Due date set to:', formattedDate);
+            } else {
+                dueDateInput.value = '';
+            }
+        }
 
             // Сбрасываем превью
             if (document.getElementById('edit-images-preview')) {
@@ -517,37 +542,43 @@ function closeTaskModal() {
     }
 
     async function submitEditForm() {
-        const formData = new FormData();
-        const taskId = document.getElementById('edit_task_id').value;
+    const taskId = document.getElementById('edit_task_id').value;
+    const formData = new FormData();
 
-        formData.append('title', document.getElementById('edit_title').value);
-        formData.append('description', document.getElementById('edit_description').value);
-        formData.append('column_id', document.getElementById('edit_column').value);
+    formData.append('title', document.getElementById('edit_title').value);
+    formData.append('description', document.getElementById('edit_description').value);
+    formData.append('column_id', document.getElementById('edit_column').value);
 
-        // Добавляем новые изображения
-        if (selectedEditFiles.length > 0) {
-            selectedEditFiles.forEach(file => {
-                formData.append('new_images', file);
-            });
-        }
-
-        try {
-            const response = await fetch(`/tasks/${taskId}/update`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.redirected) {
-                window.location.href = response.url;
-            } else {
-                const data = await response.json();
-                alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Ошибка при обновлении задачи');
-        }
+    // Добавляем дату, если она есть
+    const dueDate = document.getElementById('edit_due_date').value;
+    if (dueDate) {
+        formData.append('due_date', dueDate);
     }
+
+    // Добавляем новые изображения
+    if (typeof selectedEditFiles !== 'undefined' && selectedEditFiles.length > 0) {
+        selectedEditFiles.forEach(file => {
+            formData.append('new_images', file);
+        });
+    }
+
+    try {
+        const response = await fetch(`/tasks/${taskId}/update`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            const data = await response.json();
+            alert('Ошибка: ' + (data.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Ошибка при обновлении задачи');
+    }
+}
 
     // ========== Функции для работы с изображениями ==========
     async function deleteImage(imageId, event) {
@@ -715,6 +746,47 @@ function ensureMembersSection() {
     const boardHeader = document.querySelector('.board-header');
     if (boardHeader) {
         boardHeader.insertAdjacentElement('afterend', membersSection);
+    }
+}
+
+async function toggleTaskComplete(taskId, isCompleted) {
+    try {
+        const response = await fetch(`/tasks/${taskId}/toggle-complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ is_completed: isCompleted })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Обновляем классы у карточки задачи
+            const taskCard = document.getElementById(`task-${taskId}`);
+            if (taskCard) {
+                if (data.is_completed) {
+                    taskCard.classList.add('task-completed');
+                    taskCard.classList.remove('task-overdue');
+                    const title = taskCard.querySelector('h4');
+                    if (title) title.classList.add('completed-title');
+                } else {
+                    taskCard.classList.remove('task-completed');
+                    const title = taskCard.querySelector('h4');
+                    if (title) title.classList.remove('completed-title');
+                    // Проверяем, не просрочена ли задача
+                    const dueDate = taskCard.querySelector('.due-date');
+                    if (dueDate && dueDate.textContent) {
+                        const dueDateValue = dueDate.textContent;
+                        // Можно добавить проверку на просрочку
+                    }
+                }
+            }
+            showNotification('Статус задачи обновлен');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Ошибка при обновлении статуса');
     }
 }
 

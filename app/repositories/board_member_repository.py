@@ -9,12 +9,15 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
         super().__init__(db, BoardMember)
 
     def get_board_members(self, board_id: int) -> List[BoardMember]:
+        # все участники доски
         return self.db.query(BoardMember).filter(BoardMember.board_id == board_id).all()
 
     def get_user_boards(self, user_id: int) -> List[BoardMember]:
+        # оски пользователя
         return self.db.query(BoardMember).filter(BoardMember.user_id == user_id).all()
 
     def add_member(self, board_id: int, user_id: int, role: MemberRole, invited_by: int) -> BoardMember:
+        # обавить учасника
         return self.create(
             board_id=board_id,
             user_id=user_id,
@@ -23,6 +26,7 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
         )
 
     def remove_member(self, board_id: int, user_id: int) -> bool:
+        # удалить участника
         member = self.db.query(BoardMember).filter(
             BoardMember.board_id == board_id,
             BoardMember.user_id == user_id
@@ -34,6 +38,7 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
         return False
 
     def update_role(self, board_id: int, user_id: int, role: MemberRole) -> Optional[BoardMember]:
+        # изменить роль
         member = self.db.query(BoardMember).filter(
             BoardMember.board_id == board_id,
             BoardMember.user_id == user_id

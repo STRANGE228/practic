@@ -21,6 +21,7 @@ async def new_board_form(
         request: Request,
         current_user: User = Depends(get_current_active_user)
 ):
+    # страница создания доски
     return templates.TemplateResponse(
         "boards/board_form.html",
         {
@@ -38,6 +39,7 @@ async def create_board(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # создание доски
     board_repo = BoardRepository(db)
     task_repo = TaskRepository(db)
     column_repo = ColumnRepository(db)
@@ -63,6 +65,7 @@ async def user_boards(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # все доски пользователя
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
 
@@ -91,6 +94,7 @@ async def edit_board_form(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # форма редактирования доски
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 
@@ -120,6 +124,7 @@ async def update_board(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # сохраняет изменения доски
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 
@@ -141,6 +146,7 @@ async def delete_board(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # удаление доски
     board_repo = BoardRepository(db)
     board = board_repo.get(board_id)
 
@@ -162,6 +168,7 @@ async def view_board(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    # показывает страницу доски с колонками и задачами
     board_repo = BoardRepository(db)
     task_repo = TaskRepository(db)
     column_repo = ColumnRepository(db)

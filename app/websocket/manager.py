@@ -10,6 +10,7 @@ class ConnectionManager:
         self.user_boards: Dict[int, int] = {}
 
     async def connect(self, websocket: WebSocket, board_id, user_id):
+        # подключает пользователя к каналу доски
         await websocket.accept()
 
         if board_id not in self.active_connections:
@@ -47,6 +48,7 @@ class ConnectionManager:
         )
 
     async def send_personal_message(self, message, user_id):
+        # отправляет сообщение пользователю
         if user_id in self.user_boards:
             board_id = self.user_boards[user_id]
             if board_id in self.active_connections and user_id in self.active_connections[board_id]:
@@ -54,6 +56,7 @@ class ConnectionManager:
                 await websocket.send_json(message)
 
     async def broadcast_to_board(self, board_id, message, exclude_user = None):
+        # отправляет сообщение всем пользователям
         if board_id in self.active_connections:
             for user_id, connection in self.active_connections[board_id].items():
                 if exclude_user is None or user_id != exclude_user:
@@ -63,12 +66,14 @@ class ConnectionManager:
                         pass
 
     async def broadcast_task_update(self, board_id, task_data, exclude_user = None):
+        # опповещает об обновлении задачи
         await self.broadcast_to_board(board_id, {
             "type": "task_updated",
             "task": task_data
         }, exclude_user)
 
     async def broadcast_column_update(self, board_id, column_data, exclude_user = None):
+        # опповещает об обновлении колонки
         await self.broadcast_to_board(board_id, {
             "type": "column_updated",
             "column": column_data

@@ -36,6 +36,7 @@ async def websocket_endpoint(
         token: str,
         db: Session = Depends(get_db)
 ):
+    # Обрабатывает соединение, синхронизирует изменения между пользователями
 
     current_user = await get_current_user_ws(token, db)
 

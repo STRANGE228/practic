@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.column import Column
 from app.repositories.base import BaseRepository
-from typing import List, Optional
 
 
 class ColumnRepository(BaseRepository[Column]):

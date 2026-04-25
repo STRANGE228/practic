@@ -3,11 +3,13 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.auth import get_current_active_user
+from app.models import MemberRole
 from app.repositories.board_member_repository import BoardMemberRepository
 from app.repositories.task_repository import TaskRepository
 from app.repositories.task_image_repository import TaskImageRepository
 from app.repositories.column_repository import ColumnRepository
 from app.repositories.board_repository import BoardRepository
+from app.services import task_service
 from app.services.task_service import TaskService
 from app.models.user import User
 from typing import List, Optional
@@ -19,13 +21,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
-
 @router.post("/create")
 async def create_task(
         request: Request,
         column_id: int = Form(...),
         title: str = Form(...),
         description: str = Form(""),
+        due_date: str = Form(None),
         images: List[UploadFile] = File(None),
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
@@ -44,9 +46,15 @@ async def create_task(
     task_repo = TaskRepository(db)
     image_repo = TaskImageRepository(db)
     task_service = TaskService(task_repo, image_repo)
-
     try:
-        task = task_service.create_task(title, description, column_id)
+        due_date_obj = None
+        if due_date:
+            try:
+                due_date_obj = datetime.strptime(due_date, "%Y-%m-%dT%H:%M")
+            except:
+                due_date_obj = datetime.strptime(due_date, "%Y-%m-%d")
+
+        task = task_service.create_task(title, description, column_id, due_date_obj)
 
         if images and images[0].filename:
             for image in images:
@@ -82,12 +90,14 @@ async def get_task_json(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
+    #Получение данных задачи в формате JSON для модального окна
     task_repo = TaskRepository(db)
     task = task_repo.get_with_images(task_id)
 
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
 
+    # Проверяем доступ
     column_repo = ColumnRepository(db)
     column = column_repo.get(task.column_id)
     if not column:
@@ -98,6 +108,7 @@ async def get_task_json(
     if not board:
         raise HTTPException(status_code=404, detail="Доска не найдена")
 
+    # Проверяем права доступа
     if board.owner_id != current_user.id:
         from app.repositories.board_member_repository import BoardMemberRepository
         member_repo = BoardMemberRepository(db)
@@ -114,6 +125,7 @@ async def get_task_json(
         "title": task.title,
         "description": task.description or "",
         "column_id": task.column_id,
+        "due_date": task.due_date.isoformat() if task.due_date else None,  # Добавляем дату
         "images": [
             {
                 "id": img.id,
@@ -127,14 +139,15 @@ async def get_task_json(
 
 @router.post("/{task_id}/update")
 async def update_task(
-        task_id: int,
-        request: Request,
-        title: str = Form(...),
-        description: str = Form(""),
-        column_id: int = Form(...),
-        new_images: List[UploadFile] = File(None),
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_active_user)
+    task_id: int,
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(""),
+    column_id: int = Form(...),
+    due_date: str = Form(None),
+    new_images: List[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ):
     task_repo = TaskRepository(db)
     image_repo = TaskImageRepository(db)
@@ -153,7 +166,17 @@ async def update_task(
     if not board or board.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
 
-    task_repo.update(task, title=title, description=description, column_id=column_id)
+    due_date_obj = None
+    if due_date:
+        try:
+            due_date_obj = datetime.strptime(due_date, "%Y-%m-%dT%H:%M")
+        except:
+            try:
+                due_date_obj = datetime.strptime(due_date, "%Y-%m-%d")
+            except:
+                due_date_obj = None
+
+    task_repo.update(task, title=title, description=description, column_id=column_id, due_date=due_date_obj)
 
     if new_images and new_images[0].filename:
         for image in new_images:
@@ -406,3 +429,54 @@ async def delete_task(
     task_service.delete_task(task_id)
 
     return RedirectResponse(url=f"/boards/{board_id}", status_code=303)
+
+
+from datetime import datetime
+
+
+
+
+
+@router.post("/{task_id}/toggle-complete")
+async def toggle_task_complete(
+        task_id: int,
+        request: Request,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
+):
+    # Переключение статуса завершения задачи
+    task_repo = TaskRepository(db)
+    task = task_repo.get(task_id)
+
+    if not task:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "error": "Задача не найдена"}
+        )
+
+    # Проверяем доступ
+    column_repo = ColumnRepository(db)
+    column = column_repo.get(task.column_id)
+    board_repo = BoardRepository(db)
+    board = board_repo.get(column.board_id)
+
+    if board.owner_id != current_user.id:
+        member_repo = BoardMemberRepository(db)
+        member = member_repo.db.query(member_repo.model).filter(
+            member_repo.model.board_id == board.id,
+            member_repo.model.user_id == current_user.id
+        ).first()
+
+        if not member or member.role == MemberRole.VIEWER:
+            return JSONResponse(
+                status_code=403,
+                content={"success": False, "error": "Доступ запрещен"}
+            )
+
+    task = task_repo.update_task_status(task_id, not task.is_completed)
+
+    return JSONResponse({
+        "success": True,
+        "task_id": task.id,
+        "is_completed": task.is_completed
+    })
