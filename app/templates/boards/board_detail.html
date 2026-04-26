@@ -73,10 +73,10 @@
                 </div>
                 {% if user_role == 'owner' and member.id != user.id %}
                     <div class="member-actions">
-                        <form action="/invitations/member/{{ member.id }}/remove" method="post" style="display: inline;" onsubmit="return confirm('Удалить участника?')">
-                            <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
-                        </form>
-                    </div>
+    <form action="/invitations/member/{{ member.id }}/remove" method="post" style="display: inline;" onsubmit="return confirm('Удалить участника?')">
+        <button type="submit" class="btn-icon" title="Удалить">🗑️</button>
+    </form>
+</div>
                 {% endif %}
             </div>
         {% endfor %}

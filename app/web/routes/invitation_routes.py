@@ -10,7 +10,7 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.board_member_repository import BoardMemberRepository
 from app.services.board_service import BoardService
 from app.models.user import User
-from app.models.board_member import MemberRole
+from app.models.board_member import MemberRole, BoardMember
 from datetime import datetime
 
 router = APIRouter(prefix="/invitations", tags=["invitations"])
@@ -100,26 +100,29 @@ async def remove_member(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_active_user)
 ):
-    # кик с доски
+    # Удаление участника с доски
     member_repo = BoardMemberRepository(db)
     member = member_repo.get(member_id)
 
     if not member:
-        raise HTTPException(status_code=404, detail="Участник не найден")
+        member = db.query(BoardMember).filter(
+            BoardMember.user_id == member_id
+        ).first()
+
+        if not member:
+            raise HTTPException(status_code=404, detail="Участник не найден")
 
     board_repo = BoardRepository(db)
     board = board_repo.get(member.board_id)
 
     if not board or board.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Только владелец доски может удалять участников")
-
     if member.user_id == board.owner_id:
         raise HTTPException(status_code=400, detail="Нельзя удалить владельца доски")
 
+    board_id = board.id
     member_repo.delete(member)
-
-    return RedirectResponse(url=f"/boards/{board.id}", status_code=303)
-
+    return RedirectResponse(url=f"/boards/{board_id}", status_code=303)
 
 @router.post("/member/{member_id}/update-role")
 async def update_member_role(
